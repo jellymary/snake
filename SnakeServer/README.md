@@ -1,3 +1,0 @@
-# snake
-
-under construction
