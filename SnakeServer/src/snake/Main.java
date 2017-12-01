@@ -1,7 +1,5 @@
 package snake;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -9,36 +7,30 @@ import java.util.*;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException, IllegalGameMessageFormatException {
         ServerSocket server = new ServerSocket(8080);
         System.out.println("Server is started");
-        HashMap<Integer, ArrayList<Socket>> sockets = new HashMap<>();
+        HashMap<Integer, ArrayList<Player>> sockets = new HashMap<>();
 
         while(true) {
-            boolean isWaiting = true;
             Socket currentSocket = server.accept();
-            System.out.println(new Formatter().format("Client %s accepted", currentSocket.getInetAddress()));
-            DataOutputStream out = new DataOutputStream(currentSocket.getOutputStream());
-            DataInputStream in = new DataInputStream(currentSocket.getInputStream());
+            System.out.println(String.format("Client %s accepted", currentSocket.getInetAddress()));
+            Player currentPlayer = new Player(currentSocket);
 
-            int playersCount = in.readInt();
+            int playersCount = Integer.parseInt(currentPlayer.read(Message.REQUEST));
             if (playersCount == 1) {
-                new Game(new Socket[]{currentSocket});
+                new Game(new Player[]{currentPlayer});
                 continue;
             }
             if (sockets.containsKey(playersCount)) {
-                ArrayList<Socket> players = sockets.get(playersCount);
-                players.add(currentSocket);
+                ArrayList<Player> players = sockets.get(playersCount);
+                players.add(currentPlayer);
                 if (players.size() == playersCount) {
-                    new Game((Socket[]) players.toArray());
+                    new Game((Player[]) players.toArray());
                     players.clear();
-                    isWaiting = false;
                 }
             }
-            else sockets.put(playersCount, new ArrayList<>(Arrays.asList(currentSocket)));
-             if (isWaiting)
-                 out.writeUTF("Wait for other players");
+            else sockets.put(playersCount, new ArrayList<>(Arrays.asList(currentPlayer)));
         }
     }
 }

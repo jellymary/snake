@@ -11,7 +11,7 @@ public class CUI
         int levelNumber = 1;
         while (true)
         {
-            Level level = loader.load(levelNumber);
+            Level level = loader.loadLevel(levelNumber);
             if (level == null) {
                 System.out.println("Game completed!");
                 break;

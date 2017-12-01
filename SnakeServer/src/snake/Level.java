@@ -85,4 +85,8 @@ public class Level
         
         effects.removeAll(toRemove);
     }
+
+    public String serialize() {
+        return "it's game map :)";
+    }
 }

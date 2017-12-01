@@ -1,15 +1,31 @@
 package snake;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Random;
 
 public class LevelLoader
 {
     private static final Path LEVELS_PATH = Paths.get("src", "snake", "levels");
-    
-    public Level load(int number)
+    private final Random random = new Random();
+    private int LevelNumber;
+
+    public LevelLoader() {
+        File levelsDirectory = new File(LEVELS_PATH.toAbsolutePath().toString());
+        int levelsCount = levelsDirectory.listFiles().length;
+        LevelNumber = 1 + random.nextInt(levelsCount);
+    }
+
+    public Level loadRandomLevel() { return load(LevelNumber); }
+
+    public Level loadLevel(int number) {
+        return load(number);
+    }
+
+    private Level load(int number)
     {
         try
         {
