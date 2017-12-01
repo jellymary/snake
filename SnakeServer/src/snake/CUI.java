@@ -3,7 +3,7 @@ package snake;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-public class CUI 
+public class CUI
 {
     public static void main(String[] args) throws Exception
     {
@@ -17,7 +17,7 @@ public class CUI
                 break;
             }
             while (level.state == LevelState.PLAYING)
-            {                
+            {
                 printView(renderView(level));
                 String line = readLine();
                 Vector direction = Direction.parse(line);
@@ -33,7 +33,7 @@ public class CUI
             }
         }
     }
-    
+
     private static String readLine()
     {
         try
@@ -47,7 +47,7 @@ public class CUI
             return "";
         }
     }
-    
+
     private static String[][] renderView(Level level)
     {
         Vector size = level.map.getSize();
@@ -80,7 +80,7 @@ public class CUI
             characters[part.y][part.x] = "S";
         return characters;
     }
-    
+
     private static void printView(String[][] view)
     {
         String[] lines = new String[view.length];

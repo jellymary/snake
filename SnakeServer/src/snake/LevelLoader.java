@@ -39,8 +39,8 @@ public class LevelLoader
             }
             String[] snakeInfo = lines.get(lines.size() - 1).split(" ");
             level.snake = new Snake(
-                    Vector.parse(snakeInfo[0], ","), 
-                    Direction.parse(snakeInfo[1]), 
+                    Vector.parse(snakeInfo[0], ","),
+                    Direction.parse(snakeInfo[1]),
                     level.map.getSize());
             return level;
         }
@@ -49,14 +49,14 @@ public class LevelLoader
             return null;
         }
     }
-    
+
     private List<String> readLines(int levelNumber) throws Exception
     {
         Path path = LEVELS_PATH.resolve(Integer.toString(levelNumber) + ".lvl");
         return Files.readAllLines(path);
     }
-    
-    private Level buildConfiguration(String line) 
+
+    private Level buildConfiguration(String line)
     {
         Level level = new Level();
         String[] parts = line.split(" ");
@@ -66,7 +66,7 @@ public class LevelLoader
         level.timeout = Integer.parseInt(parts[2]);
         return level;
     }
-    
+
     private MapObject[] parseObject(String data, Level level) throws Exception
     {
         String[] parts = data.split(" ");

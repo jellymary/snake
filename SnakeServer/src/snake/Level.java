@@ -10,21 +10,21 @@ public class Level
     public int timeout;
     public int targetLength;
     public LevelState state;
-    
+
     private int elapsed;
     private HashSet<Effect> effects;
-    
+
     public Level()
     {
         state = LevelState.PLAYING;
         effects = new HashSet<>();
     }
-    
+
     public void addEffect(Effect effect)
     {
         effects.add(effect);
     }
-    
+
     public void tick()
     {
         if (++elapsed < timeout)
@@ -34,11 +34,11 @@ public class Level
         snake.makeStep();
         checkCollisions();
         effectsTick();
-        
+
         if (snake.getLength() == targetLength)
             state = LevelState.COMPLETED;
     }
-    
+
     public Vector findFreeCell()
     {
         Random random = new Random();
@@ -46,22 +46,22 @@ public class Level
         HashSet<Vector> snakeTrace = new HashSet<>();
         for (Vector part : snake.getTrace())
             snakeTrace.add(part);
-        
+
         Vector location;
         do
             location = new Vector(random.nextInt(mapSize.x), random.nextInt(mapSize.y));
         while (snakeTrace.contains(location) || map.get(location) != null);
-        
+
         return location;
     }
-    
+
     private void checkCollisions()
     {
         Vector headLocation = snake.getHeadLocation();
         MapObject object = map.get(headLocation);
         if (object != null)
             object.interact();
-        
+
         Vector[] snakeTrace = snake.getTrace();
         for (int i = 1; i < snakeTrace.length; i++)
         {
@@ -72,7 +72,7 @@ public class Level
             }
         }
     }
-    
+
     private void effectsTick()
     {
         HashSet<Effect> toRemove = new HashSet<>();
@@ -82,7 +82,6 @@ public class Level
             if (effect.finished)
                 toRemove.add(effect);
         }
-        
         effects.removeAll(toRemove);
     }
 
