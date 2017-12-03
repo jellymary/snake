@@ -19,7 +19,7 @@ class GameConnection {
     }
 
     void sendRequestToPlay() throws IOException {
-        outputStream.writeUTF(GameMessage.NameByMessageType.get(GameMessageType.Request));
+        outputStream.writeUTF(GameMessage.NameByMessageType.get(GameMessageType.Request) + "\nAidar\n1\n");
     }
 
     GameMessage getNextMessage() throws IOException, IllegalGameMessageFormatException {
