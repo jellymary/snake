@@ -80,6 +80,7 @@ public class ClientApplication extends Application {
 
     private void switchToConnectionScene(ActionEvent actionEvent) {
         primaryStage.setScene(connectionSceneHolder.getScene());
+        actionEvent.consume();
     }
 
     private void connectAndPlayGameThroughSocket(Socket socket) throws GameUnavailableException, IOException {
@@ -87,6 +88,8 @@ public class ClientApplication extends Application {
         gameConnection.sendRequestToPlay();
 
         primaryStage.setScene(gameSceneHolder.getScene());
+
+        FieldDeserializer deserializer = new FieldDeserializer();
 
         while (true) {
             final GameMessage serverMessage;
@@ -111,7 +114,8 @@ public class ClientApplication extends Application {
                     Platform.runLater(() -> activateControls(gameConnection));
                     break;
                 case GameState:
-                    //TODO
+                    Node[] deserialized = deserializer.deserialize(serverMessage.raw, gameSceneHolder.getCellSize());
+                    Platform.runLater(() -> gameSceneHolder.DrawField(deserialized));
                     break;
                 case GameFinished:
                     finishGame(serverMessage);
@@ -199,10 +203,5 @@ public class ClientApplication extends Application {
         primaryStage.setHeight(WINDOW_HEIGHT
                 + primaryStage.getScene().getWindow().getHeight()
                 - primaryStage.getScene().getHeight());
-    }
-
-    private void switchToGameScene() {
-        //TODO
-        primaryStage.setScene(gameSceneHolder.getScene());
     }
 }

@@ -1,6 +1,7 @@
 package client;
 
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.SubScene;
 
@@ -11,6 +12,7 @@ public class GameSceneHolder implements SceneHolder {
     private int columns, rows;
     private final double WINDOW_WIDTH;
     private final double WINDOW_HEIGHT;
+    private double cellSize;
 
     GameSceneHolder(double windowWidth, double windowHeight) {
         WINDOW_HEIGHT = windowHeight;
@@ -35,14 +37,14 @@ public class GameSceneHolder implements SceneHolder {
         if (rows * WINDOW_WIDTH > WINDOW_HEIGHT * columns) {
             height = WINDOW_HEIGHT;
             width = height / rows * columns;
-        }
-        else {
+        } else {
             width = WINDOW_WIDTH;
             height = width / columns * rows;
         }
 
         gameArea.setHeight(height);
         gameArea.setWidth(width);
+        this.cellSize = height / rows;
 
         gameArea.setTranslateX(-gameArea.getWidth() / 2);
         gameArea.setTranslateY(-gameArea.getHeight() / 2);
@@ -50,5 +52,14 @@ public class GameSceneHolder implements SceneHolder {
 
     public void clear() {
         fieldObjects.getChildren().clear();
+    }
+
+    public double getCellSize() {
+        return cellSize;
+    }
+
+    public void DrawField(Node[] objects) {
+        clear();
+        fieldObjects.getChildren().addAll(objects);
     }
 }
