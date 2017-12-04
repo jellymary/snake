@@ -1,14 +1,16 @@
 package client;
 
+import javafx.scene.input.KeyCode;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class GameMessage {
-    final GameMessageType type;
-    final String raw;
+    final GameMessageType messageType;
+    final String content;
 
-    public static final Map<String, GameMessageType> MessageTypeByName = new HashMap<>();
-    public static final Map<GameMessageType, String> NameByMessageType = new HashMap<>();
+    private static final Map<String, GameMessageType> MessageTypeByName = new HashMap<>();
+    private static final Map<GameMessageType, String> NameByMessageType = new HashMap<>();
 
     static {
         MessageTypeByName.put("REQUEST", GameMessageType.Request);
@@ -17,27 +19,79 @@ public class GameMessage {
         MessageTypeByName.put("GAME_STARTED", GameMessageType.GameStarted);
         MessageTypeByName.put("PLAYERS_ACTION", GameMessageType.PlayersAction);
         MessageTypeByName.put("GAME_STATE", GameMessageType.GameState);
-        MessageTypeByName.put("GameFinished", GameMessageType.GameFinished);
+        MessageTypeByName.put("GAME_FINISHED", GameMessageType.GameFinished);
 
-        NameByMessageType.put(GameMessageType.Request, "REQUEST");
-        NameByMessageType.put(GameMessageType.GameIsReady, "GAME_IS_READY");
-        NameByMessageType.put(GameMessageType.ClientIsReady, "CLIENT_IS_READY");
-        NameByMessageType.put(GameMessageType.GameStarted, "GAME_STARTED");
-        NameByMessageType.put(GameMessageType.PlayersAction, "PLAYERS_ACTION");
-        NameByMessageType.put(GameMessageType.GameState, "GAME_STATE");
-        NameByMessageType.put(GameMessageType.GameFinished, "GameFinished");
+        MessageTypeByName.forEach((name, messageType) -> NameByMessageType.put(messageType, name));
     }
 
-    GameMessage(String raw) throws IllegalGameMessageFormatException {
-        this.raw = raw;
-        type = getMessageType(raw);
+    public GameMessage(String raw) throws IllegalGameMessageFormatException {
+        if (raw == null)
+            throw new IllegalArgumentException("Raw shoulfd not be null");
+        int endOfFirstLine = getEndOfFirstLine(raw);
+        messageType = MessageTypeByName.get(raw.substring(0, endOfFirstLine));
+        if (messageType == null)
+            throw new IllegalGameMessageFormatException("Message messageType not recognized");
+        this.content = raw.substring(endOfFirstLine + 1);
     }
 
-    private GameMessageType getMessageType(String raw) throws IllegalGameMessageFormatException {
-        for (String key:
-             MessageTypeByName.keySet())
-            if (raw.startsWith(key))
-                return MessageTypeByName.get(key);
-        throw new IllegalGameMessageFormatException("Message type not recognized");
+    private GameMessage(GameMessageType messageType, String content) {
+        this.messageType = messageType;
+        this.content = content;
+    }
+
+    private int getEndOfFirstLine(String raw) {
+        int endOfFirstLine = raw.indexOf('\n');
+        if (endOfFirstLine == -1)
+            endOfFirstLine = raw.length();
+        return endOfFirstLine;
+    }
+
+    public static String getNameByMessageType(GameMessageType messageType) {
+        return NameByMessageType.get(messageType);
+    }
+
+    public static GameMessage makePlayersActionMessage(KeyCode code) {
+        if (!code.isArrowKey())
+            throw new IllegalArgumentException("Arrow key code expected");
+        return new GameMessage(GameMessageType.PlayersAction, code.getName());
+    }
+
+    public static GameMessage makeRequestMessage(String name, int desiredPlayersNumber) {
+        if (name == null || name.isEmpty())
+            throw new IllegalArgumentException("Name should be not empty string");
+        if (desiredPlayersNumber < 1)
+            throw new IllegalArgumentException("Desired players number should not be less than one");
+        return new GameMessage(GameMessageType.Request, String.join("\n", name, Integer.toString(desiredPlayersNumber)));
+    }
+
+    public static GameMessage makeClientIsReadyMessage() {
+        return new GameMessage(GameMessageType.ClientIsReady, "");
+    }
+
+    public String toString() {
+        return String.join("\n", NameByMessageType.get(messageType), content);
+    }
+
+    public static Size parseFieldSize(GameMessage serverMessage) {
+        if (serverMessage.messageType != GameMessageType.GameIsReady)
+            throw new IllegalArgumentException("Message type should be " + GameMessageType.GameIsReady.name());
+
+        String[] lines = serverMessage.content.split("\n", 2);
+
+        return new Size(Integer.parseInt(lines[0]), Integer.parseInt(lines[0]));
+    }
+
+    public static String parseFinishResult(GameMessage serverMessage) {
+        if (serverMessage.messageType != GameMessageType.GameFinished)
+            throw new IllegalArgumentException("Message type should be " + GameMessageType.GameFinished.name());
+
+        switch (serverMessage.content.split("\n", 1)[0]) {
+            case "WIN":
+                return "Win!";
+            case "LOSE":
+                return "Lose!";
+            default:
+                return "<unknown result>";
+        }
     }
 }

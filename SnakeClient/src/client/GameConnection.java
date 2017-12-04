@@ -1,13 +1,12 @@
 package client;
 
-import javafx.scene.input.KeyCode;
-
+import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
-class GameConnection {
+class GameConnection implements Closeable {
     private DataInputStream inputStream;
     private DataOutputStream outputStream;
     private Socket socket;
@@ -18,21 +17,16 @@ class GameConnection {
         outputStream = new DataOutputStream(socket.getOutputStream());
     }
 
-    void sendRequestToPlay() throws IOException {
-        outputStream.writeUTF(GameMessage.NameByMessageType.get(GameMessageType.Request) + "\nAidar\n1\n");
+    public void sendMessage(GameMessage message) throws IOException {
+        outputStream.writeUTF(message.toString());
     }
 
-    GameMessage getNextMessage() throws IOException, IllegalGameMessageFormatException {
-        String answer = inputStream.readUTF();
-        return new GameMessage(answer);
+    public GameMessage receiveMessage() throws IOException, IllegalGameMessageFormatException {
+        return new GameMessage(inputStream.readUTF());
     }
 
-    void sendPlayersAction(KeyCode code) throws IOException {
-        String message = "PLAYERS_ACTION\n" + code.getName() + "\n";
-        outputStream.writeUTF(message);
-    }
-
-    Socket getSocket() {
-        return socket;
+    @Override
+    public void close() throws IOException {
+        socket.close();
     }
 }

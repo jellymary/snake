@@ -20,7 +20,8 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ClientApplication extends Application {
     private static final double WINDOW_HEIGHT = 480;
@@ -47,9 +48,9 @@ public class ClientApplication extends Application {
         deserializer.registerVisualization("Gum", (size) -> makeCircleObject(size, Color.PINK));
         deserializer.registerVisualization("Mushroom", (size) -> {
             Group group = new Group();
-            Node hat = Shape.subtract(new Circle(size / 2, Color.BROWN), new Rectangle(- size / 2, 0, size, size));
+            Node hat = Shape.subtract(new Circle(size / 2, Color.BROWN), new Rectangle(-size / 2, 0, size, size));
             group.getChildren().add(hat);
-            group.getChildren().add(new Rectangle(-size / 4, 0 , size / 2, size / 2));
+            group.getChildren().add(new Rectangle(-size / 4, 0, size / 2, size / 2));
             group.setLayoutX(size / 2);
             group.setLayoutY(size / 2);
             return group;
@@ -83,83 +84,56 @@ public class ClientApplication extends Application {
         actionEvent.consume();
     }
 
-    private void connectAndPlayGameThroughSocket(Socket socket) throws GameUnavailableException, IOException {
+    private void connectAndPlayGameThroughSocket(Socket socket, String name, int desiredPlayersNUmber) throws IOException {
         GameConnection gameConnection = new GameConnection(socket);
-        gameConnection.sendRequestToPlay();
+        gameConnection.sendMessage(GameMessage.makeRequestMessage(name, desiredPlayersNUmber));
 
         primaryStage.setScene(gameSceneHolder.getScene());
 
         FieldDeserializer deserializer = new FieldDeserializer();
 
-        while (true) {
+        AtomicReference<String> endMessage = new AtomicReference<>();
+        AtomicBoolean shouldRun = new AtomicBoolean(true);
+        while (shouldRun.get()) {
             final GameMessage serverMessage;
             try {
-                serverMessage = gameConnection.getNextMessage();
+                serverMessage = gameConnection.receiveMessage();
             } catch (IllegalGameMessageFormatException e) {
-                Platform.runLater(() -> showGameEndSceneWithMessage("Connection format error"));
-                return;
+                endMessage.set("Connection format error");
+                shouldRun.set(false);
+                break;
             }
 
-            switch (serverMessage.type) {
+
+            switch (serverMessage.messageType) {
                 case GameIsReady:
-                    Platform.runLater(() -> {
-                        try {
-                            arrangeGameScene(serverMessage);
-                        } catch (IllegalGameMessageFormatException e) {
-                            showGameEndSceneWithMessage("Game crushed");
-                        }
-                    });
+                    Size fieldSize = GameMessage.parseFieldSize(serverMessage);
+                    Platform.runLater(() -> arrangeGameScene(fieldSize));
                     break;
                 case GameStarted:
-                    Platform.runLater(() -> activateControls(gameConnection));
+                    Platform.runLater(() -> {
+                        gameSceneHolder.setOnControlsKeyPressed((keyEvent) -> {
+                            try {
+                                gameConnection.sendMessage(GameMessage.makePlayersActionMessage(keyEvent.getCode()));
+                            } catch (IOException e) {
+                                endMessage.set("Connection lost");
+                                shouldRun.set(false);
+                            }
+                        });
+                        gameSceneHolder.setControlsActive(true);
+                    });
                     break;
                 case GameState:
-                    Node[] deserialized = deserializer.deserialize(serverMessage.raw, gameSceneHolder.getCellSize());
+                    Node[] deserialized = deserializer.deserialize(serverMessage.content, gameSceneHolder.getCellSize());
                     Platform.runLater(() -> gameSceneHolder.DrawField(deserialized));
                     break;
                 case GameFinished:
-                    finishGame(serverMessage);
-                    return;
+                    endMessage.set(GameMessage.parseFinishResult(serverMessage));
+                    shouldRun.set(false);
+                    break;
             }
         }
-    }
-
-    private void finishGame(GameMessage message) {
-        String[] lines = message.raw.split("\n");
-        String printedMessage = "Default message";
-        try {
-            if (Objects.equals(lines[1], "WIN"))
-                printedMessage = "Win!";
-            else if (Objects.equals(lines[1], "LOSE"))
-                printedMessage = "Game over!";
-        } catch (IndexOutOfBoundsException ignored){}
-        final String res = printedMessage;
-        Platform.runLater(() -> showGameEndSceneWithMessage(res));
-    }
-
-    private void activateControls(final GameConnection gameConnection) {
-        gameSceneHolder.getScene().setOnKeyPressed(event -> {
-            if (event.getCode().isArrowKey())
-                try {
-                    gameConnection.sendPlayersAction(event.getCode());
-                } catch (IOException e) {
-                    try {
-                        gameConnection.getSocket().close();
-                    } catch (IOException ec) {
-                    }
-                    finally {
-                        showGameEndSceneWithMessage("Connection lost");
-                    }
-                }
-            if (event.getCode() == KeyCode.ESCAPE)
-                try {
-                    gameConnection.getSocket().close();
-                } catch (IOException e) {
-                }
-                finally {
-                    showGameEndSceneWithMessage("You quit");
-                }
-        });
+        Platform.runLater(() -> showGameEndSceneWithMessage(endMessage.get()));
     }
 
     private void showGameEndSceneWithMessage(String message) {
@@ -167,27 +141,13 @@ public class ClientApplication extends Application {
         primaryStage.setScene(gameEndScene);
     }
 
-    private void arrangeGameScene(GameMessage message) throws IllegalGameMessageFormatException {
-        String[] lines = message.raw.split("\n");
-        int fieldWidth, fieldHeight;
-        try {
-            fieldWidth = Integer.parseInt(lines[1]);
-            fieldHeight = Integer.parseInt(lines[2]);
-        } catch (NumberFormatException e)
-        {
-            throw new IllegalGameMessageFormatException("Field width or height not recognized");
-        }
-        catch (IndexOutOfBoundsException e)
-        {
-            throw new IllegalGameMessageFormatException("Unexpected end of message");
-        }
-
-        gameSceneHolder.resize(fieldWidth, fieldHeight);
+    private void arrangeGameScene(Size size) {
         gameSceneHolder.clear();
+        gameSceneHolder.resize(size.width, size.height);
     }
 
     @Override
-    public void start(Stage primaryStage) throws Exception {
+    public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
         primaryStage.setScene(connectionSceneHolder.getScene());
         primaryStage.resizableProperty().setValue(false);

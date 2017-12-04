@@ -1,9 +1,12 @@
 package client;
 
+import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.SubScene;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 
 public class GameSceneHolder implements SceneHolder {
     private final Scene scene;
@@ -13,6 +16,7 @@ public class GameSceneHolder implements SceneHolder {
     private final double WINDOW_WIDTH;
     private final double WINDOW_HEIGHT;
     private double cellSize;
+    private EventHandler<KeyEvent> controlsHandler;
 
     GameSceneHolder(double windowWidth, double windowHeight) {
         WINDOW_HEIGHT = windowHeight;
@@ -22,6 +26,8 @@ public class GameSceneHolder implements SceneHolder {
         gameArea.setLayoutX(WINDOW_WIDTH / 2);
         gameArea.setLayoutY(WINDOW_HEIGHT / 2);
         scene = new Scene(new Group(gameArea));
+
+        gameArea.setOnKeyPressed(this::handleKeyPressed);
     }
 
     @Override
@@ -61,5 +67,26 @@ public class GameSceneHolder implements SceneHolder {
     public void DrawField(Node[] objects) {
         clear();
         fieldObjects.getChildren().addAll(objects);
+    }
+
+    public void setOnControlsKeyPressed(EventHandler<KeyEvent> handler) {
+        controlsHandler = handler;
+    }
+
+    private void handleKeyPressed(KeyEvent event) {
+        KeyCode code = event.getCode();
+        if (code == KeyCode.ESCAPE)
+            tryQuitGame();
+        else if (code.isArrowKey())
+            controlsHandler.handle(event);
+        event.consume();
+    }
+
+    private void tryQuitGame() {
+        //TODO
+    }
+
+    public void setControlsActive(boolean state){
+        gameArea.setFocusTraversable(state);
     }
 }
