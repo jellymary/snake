@@ -46,7 +46,9 @@ public class Player {
             else if (messageType == Message.PLAYER_ACTION) {
                 return lines[1];
             }
-        } catch (IOException ignore) {}
+        } catch (IOException ignore) {
+            return null;
+        }
         return null;
     }
 

@@ -8,7 +8,6 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -85,55 +84,72 @@ public class ClientApplication extends Application {
     }
 
     private void connectAndPlayGameThroughSocket(Socket socket, String name, int desiredPlayersNUmber) throws IOException {
-        GameConnection gameConnection = new GameConnection(socket);
-        gameConnection.sendMessage(GameMessage.makeRequestMessage(name, desiredPlayersNUmber));
+        try {
+            GameConnection gameConnection = new GameConnection(socket);
+            gameConnection.sendMessage(GameMessage.makeRequestMessage(name, desiredPlayersNUmber));
 
-        primaryStage.setScene(gameSceneHolder.getScene());
+            primaryStage.setScene(gameSceneHolder.getScene());
 
-        FieldDeserializer deserializer = new FieldDeserializer();
+            FieldDeserializer deserializer = new FieldDeserializer();
 
-        AtomicReference<String> endMessage = new AtomicReference<>();
-        AtomicBoolean shouldRun = new AtomicBoolean(true);
-        while (shouldRun.get()) {
-            final GameMessage serverMessage;
-            try {
-                serverMessage = gameConnection.receiveMessage();
-            } catch (IllegalGameMessageFormatException e) {
-                endMessage.set("Connection format error");
-                shouldRun.set(false);
-                break;
-            }
-
-
-            switch (serverMessage.messageType) {
-                case GameIsReady:
-                    Size fieldSize = GameMessage.parseFieldSize(serverMessage);
-                    Platform.runLater(() -> arrangeGameScene(fieldSize));
-                    break;
-                case GameStarted:
-                    Platform.runLater(() -> {
-                        gameSceneHolder.setOnControlsKeyPressed((keyEvent) -> {
-                            try {
-                                gameConnection.sendMessage(GameMessage.makePlayersActionMessage(keyEvent.getCode()));
-                            } catch (IOException e) {
-                                endMessage.set("Connection lost");
-                                shouldRun.set(false);
-                            }
-                        });
-                        gameSceneHolder.setControlsActive(true);
-                    });
-                    break;
-                case GameState:
-                    Node[] deserialized = deserializer.deserialize(serverMessage.content, gameSceneHolder.getCellSize());
-                    Platform.runLater(() -> gameSceneHolder.DrawField(deserialized));
-                    break;
-                case GameFinished:
-                    endMessage.set(GameMessage.parseFinishResult(serverMessage));
+            AtomicReference<String> endMessage = new AtomicReference<>();
+            AtomicBoolean shouldRun = new AtomicBoolean(true);
+            while (shouldRun.get()) {
+                final GameMessage serverMessage;
+                try {
+                    serverMessage = gameConnection.receiveMessage();
+                } catch (IllegalGameMessageFormatException e) {
+                    endMessage.set("Connection format error");
                     shouldRun.set(false);
                     break;
+                }
+
+
+                switch (serverMessage.messageType) {
+                    case GameIsReady:
+                        Size fieldSize = GameMessage.parseFieldSize(serverMessage);
+                        Platform.runLater(() -> {
+                            arrangeGameScene(fieldSize);
+                        });
+                        try {
+                            gameConnection.sendMessage(GameMessage.makeClientIsReadyMessage());
+                        } catch (IOException e) {
+                            endMessage.set("Network error");
+                            shouldRun.set(false);
+                        }
+                        break;
+                    case GameStarted:
+                        Platform.runLater(() -> {
+                            gameSceneHolder.setOnControlsKeyPressed((keyEvent) -> {
+                                try {
+                                    gameConnection.sendMessage(GameMessage.makePlayersActionMessage(keyEvent.getCode()));
+                                } catch (IOException e) {
+                                    endMessage.set("Connection lost");
+                                    shouldRun.set(false);
+                                }
+                            });
+                            gameSceneHolder.setControlsActive(true);
+                        });
+                        break;
+                    case GameState:
+                        Node[] nodes = deserializer.parseNodes(serverMessage.content, gameSceneHolder.getCellSize());
+                        Platform.runLater(() -> gameSceneHolder.DrawField(nodes));
+                        break;
+                    case GameFinished:
+                        endMessage.set(GameMessage.parseFinishResult(serverMessage));
+                        shouldRun.set(false);
+                        break;
+                }
             }
+            showGameEndSceneWithMessageAsync(endMessage.get());
+        } catch (Exception e) {
+            e.printStackTrace();//todo log
+            showGameEndSceneWithMessageAsync("Unknown error");
         }
-        Platform.runLater(() -> showGameEndSceneWithMessage(endMessage.get()));
+    }
+
+    private void showGameEndSceneWithMessageAsync(String message) {
+        Platform.runLater(() -> showGameEndSceneWithMessage(message));
     }
 
     private void showGameEndSceneWithMessage(String message) {

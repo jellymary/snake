@@ -11,7 +11,7 @@ import java.util.function.Function;
 public class FieldDeserializer {
     private Map<String, Function<Double, Node>> createNodeByName = new HashMap<>();
 
-    public Node[] deserialize(String serialization, double size) {
+    public Node[] parseNodes(String serialization, double size) {
         List<Node> result = new LinkedList<>();
         int index = 0;
         while (index < serialization.length()) {

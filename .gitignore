@@ -3,3 +3,5 @@ SnakeClient/out/
 SnakeClient/.idea/
 SnakeServer/out/
 SnakeServer/.idea/
+
+*.iml
