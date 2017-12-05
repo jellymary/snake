@@ -13,16 +13,22 @@ public class Game extends Thread {
     @Override
     public void run() {
         Level game = new LevelLoader().loadRandomLevel();
+        int id = 0;
         for (Player player : PLAYERS) {
-            player.set(game);
-            player.send(Message.GAME_IS_READY);
+            if (player.isAvailable) {
+                player.setID(id++);
+                player.setGame(game);
+                player.send(Message.GAME_IS_READY);
+            }
         }
         for (Player player : PLAYERS)
-            try {
-                player.read(Message.CLIENT_IS_READY);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            if (player.isAvailable) {
+                try {
+                    player.read(Message.CLIENT_IS_READY);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+        }
 
         for (Player player : PLAYERS)
             player.send(Message.GAME_STARTED);
@@ -30,13 +36,15 @@ public class Game extends Thread {
         Thread playerActionThread = new Thread(() -> {
             while (game.state == LevelState.PLAYING)
                 for (Player player : PLAYERS) {
-                    try {
-                        String playerAction = player.read(Message.PLAYER_ACTION);
-                        Vector direction = Direction.parse(playerAction);
-                        if (!direction.equals(Direction.NONE))
-                            game.snake.setDirection(direction);
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    if (player.isAvailable) {
+                        try {
+                            String playerAction = player.read(Message.PLAYER_ACTION);
+                            Vector direction = Direction.parse(playerAction);
+                            if (!direction.equals(Direction.NONE))
+                                game.snake.setDirection(direction);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
         });
@@ -45,7 +53,8 @@ public class Game extends Thread {
 
         while (game.state == LevelState.PLAYING) {
             for (Player player : PLAYERS)
-                player.send(Message.GAME_STATE);
+                if (player.isAvailable)
+                    player.send(Message.GAME_STATE);
             game.tick();
             try {
                 sleep(1000);

@@ -10,9 +10,12 @@ public class Player {
     private Socket SOCKET;
     private DataInputStream IN;
     private DataOutputStream OUT;
+    private LevelSerializer serializer;
     private String NAME;
     private Level GAME;
+    private int ID;
     public boolean isWinner;
+    public boolean isAvailable = true;
 
     Player(Socket socket)
     {
@@ -21,15 +24,14 @@ public class Player {
             IN = new DataInputStream(socket.getInputStream());
             OUT = new DataOutputStream(socket.getOutputStream());
         } catch (IOException ignore) {}
+        serializer = new LevelSerializer();
     }
 
-    public void set(Level level) {
+    public void setGame(Level level) {
         GAME = level;
     }
 
-    public String getName() {
-        return NAME;
-    }
+    public void setID(int id) { ID = id; }
 
     String read (Message messageType) throws IllegalGameMessageFormatException {
         try {
@@ -46,7 +48,9 @@ public class Player {
             else if (messageType == Message.PLAYER_ACTION) {
                 return lines[1];
             }
-        } catch (IOException ignore) {}
+        } catch (IOException e) {
+            isAvailable = false;
+        }
         return null;
     }
 
@@ -57,14 +61,16 @@ public class Player {
             message += mapSize.x + "\n" + mapSize.y;
         }
         else if (messageType == Message.GAME_STATE) {
-            message += GAME.serialize();
+            message += serializer.serializeForPlayer(GAME, ID);
         }
         else if (messageType == Message.GAME_FINISHED) {
             message += isWinner ? "WIN" : "LOSE";
         }
         try {
             OUT.writeUTF(message);
-        } catch (IOException ignore) {}
+        } catch (IOException e) {
+            isAvailable = false;
+        }
     }
 
     void socketClosing() {

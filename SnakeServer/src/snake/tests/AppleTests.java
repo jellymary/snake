@@ -1,6 +1,8 @@
 package snake.tests;
 
 import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 import org.junit.Test;
 import snake.*;
 
