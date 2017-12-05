@@ -23,6 +23,8 @@ public class FieldDeserializer {
     private int serializeImpl(List<Node> result, String serialization, int index, double size) {
         String name;
         int endOfLine = serialization.indexOf('\n', index);
+        if (endOfLine == -1)
+            endOfLine = serialization.length();
         name = serialization.substring(index, endOfLine);
         index = endOfLine + 1;
         endOfLine = serialization.indexOf('\n', index);

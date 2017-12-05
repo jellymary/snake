@@ -43,15 +43,21 @@ public class ConnectionSceneHolder implements SceneHolder {
 
         scene = new Scene(root);
 
-        connectionEstablisher = (Service) () -> {};
-
-        {
-            try {
-                doConnectionWork(socketUser);
-            } catch (Exception e) {
-                e.printStackTrace();//TODO log
+        connectionEstablisher = new Service<Void>() {
+            @Override
+            protected Task<Void> createTask() {
+                return new Task<Void>() {
+                    @Override
+                    protected Void call() throws Exception {
+                        try {
+                            doConnectionWork(socketUser);
+                        } catch (Exception e) {
+                            e.printStackTrace();//TODO log
+                        }
+                        return null;
+                    }
+                };
             }
-            return null;
         };
 
         connectButton.setOnAction(this::connect);

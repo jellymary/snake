@@ -88,7 +88,7 @@ public class ClientApplication extends Application {
             GameConnection gameConnection = new GameConnection(socket);
             gameConnection.sendMessage(GameMessage.makeRequestMessage(name, desiredPlayersNUmber));
 
-            primaryStage.setScene(gameSceneHolder.getScene());
+            Platform.runLater(() -> primaryStage.setScene(gameSceneHolder.getScene()));
 
             FieldDeserializer deserializer = new FieldDeserializer();
 
