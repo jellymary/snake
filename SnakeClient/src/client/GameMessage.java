@@ -17,7 +17,7 @@ public class GameMessage {
         MessageTypeByName.put("GAME_IS_READY", GameMessageType.GameIsReady);
         MessageTypeByName.put("CLIENT_IS_READY", GameMessageType.ClientIsReady);
         MessageTypeByName.put("GAME_STARTED", GameMessageType.GameStarted);
-        MessageTypeByName.put("PLAYERS_ACTION", GameMessageType.PlayersAction);
+        MessageTypeByName.put("PLAYER_ACTION", GameMessageType.PlayersAction);
         MessageTypeByName.put("GAME_STATE", GameMessageType.GameState);
         MessageTypeByName.put("GAME_FINISHED", GameMessageType.GameFinished);
 
