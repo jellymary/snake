@@ -6,8 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GameMessage {
-    final GameMessageType messageType;
-    final String content;
+    public final GameMessageType messageType;
+    public final String content;
 
     private static final Map<String, GameMessageType> MessageTypeByName = new HashMap<>();
     private static final Map<GameMessageType, String> NameByMessageType = new HashMap<>();
@@ -44,10 +44,6 @@ public class GameMessage {
         if (endOfFirstLine == -1)
             endOfFirstLine = raw.length();
         return endOfFirstLine;
-    }
-
-    public static String getNameByMessageType(GameMessageType messageType) {
-        return NameByMessageType.get(messageType);
     }
 
     public static GameMessage makePlayersActionMessage(KeyCode code) {

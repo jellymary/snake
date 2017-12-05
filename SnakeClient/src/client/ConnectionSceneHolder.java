@@ -32,6 +32,7 @@ public class ConnectionSceneHolder implements SceneHolder {
         root.add(new Text("Nickname and desired players number:"), 0, 0);
         root.add(nameField, 1, 0);
         root.add(desiredPlayersNumberField, 2, 0);
+
         root.add(new Text("Server address and port:"), 0, 1);
         root.add(serverAddressField, 1, 1);
         portField.setPrefWidth(60);
@@ -48,61 +49,11 @@ public class ConnectionSceneHolder implements SceneHolder {
                 return new Task<Void>() {
                     @Override
                     protected Void call() throws Exception {
-                        Platform.runLater(() -> PrintProcessState("Connecting..."));
-
-                        String serverAddress = serverAddressField.textProperty().getValueSafe();
-                        String name = nameField.textProperty().getValueSafe();
-                        int port;
-                        int desiredPlayersNumber;
                         try {
-                            port = Integer.parseInt(portField.textProperty().getValueSafe());
+                            doConnectionWork(socketUser);
+                        } catch (Exception e) {
+                            e.printStackTrace();//TODO log
                         }
-                        catch (NumberFormatException e)
-                        {
-                            Platform.runLater(() -> PrintError("Port should be integer"));
-                            return null;
-                        }
-
-                        try {
-                            desiredPlayersNumber = Integer.parseInt(desiredPlayersNumberField.textProperty().getValueSafe());
-                        }
-                        catch (NumberFormatException e)
-                        {
-                            Platform.runLater(() -> PrintError("Desired players number should be integer"));
-                            return null;
-                        }
-                        if (desiredPlayersNumber < 1)
-                        {
-                            Platform.runLater(() -> PrintError("Desired players number should be one or greater"));
-                            return null;
-                        }
-
-                        Socket socket;
-                        try {
-                            socket = new Socket(serverAddress, port);
-                        }
-                        catch (UnknownHostException e)
-                        {
-                            Platform.runLater(() -> PrintError("Unknown host"));
-                            return null;
-                        }
-                        catch (IOException e)
-                        {
-                            Platform.runLater(() -> PrintError("Unable to connect"));
-                            return null;
-                        }
-
-                        socket.close();
-                        Platform.runLater(() -> PrintProcessState("Connected!"));
-
-                        try {
-                            socketUser.accept(socket, name, desiredPlayersNumber);
-                        }
-                        catch (GameUnavailableException e)
-                        {
-                            Platform.runLater(() -> PrintError("Server responded game not available"));
-                        }
-
                         return null;
                     }
                 };
@@ -113,20 +64,65 @@ public class ConnectionSceneHolder implements SceneHolder {
         root.disableProperty().bind(connectionEstablisher.runningProperty());
     }
 
+    private void doConnectionWork(ThrowingTripleConsumer<Socket, String, Integer> socketUser) throws Exception {
+        setStateMessageOnMainThread("Connecting...");
+
+        String serverAddress = serverAddressField.textProperty().getValueSafe();
+        String name = nameField.textProperty().getValueSafe();
+        int port;
+        int desiredPlayersNumber;
+        try {
+            port = Integer.parseUnsignedInt(portField.textProperty().getValueSafe());
+        } catch (NumberFormatException e) {
+            setErrorMessageOnMainThread("Port should be a non negative integer");//todo log
+            return;
+        }
+
+        try {
+            desiredPlayersNumber = Integer.parseInt(desiredPlayersNumberField.textProperty().getValueSafe());
+        } catch (NumberFormatException e) {
+            setErrorMessageOnMainThread("Desired players number should be integer");//todo log
+            return;
+        }
+        if (desiredPlayersNumber < 1) {
+            setErrorMessageOnMainThread("Desired players number should be one or greater");//todo log
+            return;
+        }
+
+        Socket socket;
+        try {
+            socket = new Socket(serverAddress, port);
+        } catch (UnknownHostException e) {
+            setErrorMessageOnMainThread("Unknown host");//todo log
+            return;
+        } catch (IOException e) {
+            setErrorMessageOnMainThread("Unable to connect");//todo log
+            return;
+        }
+
+        setStateMessageOnMainThread("Connected!");
+
+        socketUser.accept(socket, name, desiredPlayersNumber);
+    }
+
+    private void setErrorMessageOnMainThread(String message) {
+        Platform.runLater(() -> {
+            statusText.setText(message);
+            statusText.setFill(Color.RED);
+        });
+    }
+
+    private void setStateMessageOnMainThread(String message) {
+        Platform.runLater(() -> {
+            statusText.setText(message);
+            statusText.setFill(Color.GREEN);
+        });
+    }
+
     private void connect(ActionEvent actionEvent) {
         connectionEstablisher.reset();
         connectionEstablisher.start();
         actionEvent.consume();
-    }
-
-    private void PrintProcessState(String message) {
-        statusText.setText(message);
-        statusText.setFill(Color.GREEN);
-    }
-
-    private void PrintError(String message) {
-        statusText.setText(message);
-        statusText.setFill(Color.RED);
     }
 
     @Override

@@ -1,4 +1,4 @@
 package client;
 
-class TimeToWaitExceededException extends Exception {
+public class TimeToWaitExceededException {
 }
