@@ -19,6 +19,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -31,7 +32,7 @@ public class ClientApplication extends Application {
     private GameSceneHolder gameSceneHolder;
     private Scene gameEndScene;
     private Text gameEndText = new Text();
-    private FieldDeserializer deserializer = new FieldDeserializer();
+    private final FieldDeserializer deserializer = new FieldDeserializer();
 
     @Override
     public void init() {
@@ -90,8 +91,6 @@ public class ClientApplication extends Application {
 
             Platform.runLater(() -> primaryStage.setScene(gameSceneHolder.getScene()));
 
-            FieldDeserializer deserializer = new FieldDeserializer();
-
             AtomicReference<String> endMessage = new AtomicReference<>();
             AtomicBoolean shouldRun = new AtomicBoolean(true);
             while (shouldRun.get()) {
@@ -132,7 +131,7 @@ public class ClientApplication extends Application {
                         });
                         break;
                     case GameState:
-                        Node[] nodes = deserializer.parseNodes(serverMessage.content, gameSceneHolder.getCellSize());
+                        List<Node> nodes = deserializer.parseNodes(serverMessage.content, gameSceneHolder.getCellSize());
                         Platform.runLater(() -> gameSceneHolder.DrawField(nodes));
                         break;
                     case GameFinished:

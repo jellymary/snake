@@ -49,7 +49,7 @@ public class GameMessage {
     public static GameMessage makePlayersActionMessage(KeyCode code) {
         if (!code.isArrowKey())
             throw new IllegalArgumentException("Arrow key code expected");
-        return new GameMessage(GameMessageType.PlayersAction, code.getName());
+        return new GameMessage(GameMessageType.PlayersAction, code.getName() + "\n");
     }
 
     public static GameMessage makeRequestMessage(String name, int desiredPlayersNumber) {

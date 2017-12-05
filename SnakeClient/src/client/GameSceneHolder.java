@@ -8,6 +8,8 @@ import javafx.scene.SubScene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
+import java.util.List;
+
 public class GameSceneHolder implements SceneHolder {
     private final Scene scene;
     private final Group fieldObjects = new Group();
@@ -64,7 +66,7 @@ public class GameSceneHolder implements SceneHolder {
         return cellSize;
     }
 
-    public void DrawField(Node[] objects) {
+    public void DrawField(List<Node> objects) {
         clear();
         fieldObjects.getChildren().addAll(objects);
     }
