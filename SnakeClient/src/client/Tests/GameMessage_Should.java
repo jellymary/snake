@@ -23,8 +23,8 @@ public class GameMessage_Should {
 
     @Test
     void _ShouldBeParsedCorrectly() throws IllegalGameMessageFormatException {
-            assertGameMessageTypeParsedCorrectly(GameMessageType.GameFinished, "GAME_FINISHED");
-        }
+        assertGameMessageTypeParsedCorrectly(GameMessageType.GameFinished, "GAME_FINISHED");
+    }
 
     private void assertGameMessageTypeParsedCorrectly(GameMessageType expectedType, String strMessageType) throws IllegalGameMessageFormatException {
         assertEquals(expectedType, new GameMessage(strMessageType + "\n" + content).messageType);

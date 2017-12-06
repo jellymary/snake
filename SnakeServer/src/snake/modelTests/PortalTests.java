@@ -1,8 +1,9 @@
-package snake.tests;
+package snake.modelTests;
 
-import static org.junit.Assert.*;
 import org.junit.Test;
 import snake.*;
+
+import static org.junit.Assert.*;
 
 public class PortalTests 
 {    

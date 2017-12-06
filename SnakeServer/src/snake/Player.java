@@ -4,7 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Objects;
+import java.util.HashMap;
 
 public class Player {
     private Socket SOCKET;
@@ -16,6 +16,8 @@ public class Player {
     private int ID;
     public boolean isWinner;
     public boolean isAvailable = true;
+
+    private HashMap<Message, String[]> Content = new HashMap<>();
 
     Player(Socket socket)
     {
@@ -29,48 +31,43 @@ public class Player {
 
     public void setGame(Level level) {
         GAME = level;
+        fillContent();
+    }
+
+    private void fillContent() {
+        Content.put(Message.GAME_IS_READY, new String[]{Integer.toString(GAME.map.getSize().x), Integer.toString(GAME.map.getSize().y)});
+        Content.put(Message.GAME_STATE, new String[]{serializer.serializeForPlayer(GAME, ID)});
+        Content.put(Message.GAME_STARTED, new String[]{});
+        Content.put(Message.GAME_FINISHED, new String[]{isWinner ? "WIN" : "LOSE"});
     }
 
     public void setID(int id) { ID = id; }
 
     String read (Message messageType) throws IllegalGameMessageFormatException {
-        try {
-            String message = IN.readUTF();
-            String[] lines = message.split("\n");
-            if (!Objects.equals(lines[0], messageType.toString()))
-                throw new IllegalGameMessageFormatException(
-                        String.format("Expected: %s, actual: %s", messageType.toString(), lines[0])
-                );
-            if (messageType == Message.REQUEST) {
-                NAME = lines[1];
-                return lines[2];
+        if (this.isAvailable)
+            try {
+                GameMessage message = new GameMessage(IN.readUTF());
+                if (messageType != message.messageType)
+                    throw new IllegalGameMessageFormatException("Another type of message was expected");
+                if (messageType.equals(Message.REQUEST)) {
+                    this.NAME = message.content[0];
+                    return message.content[1];
+                }
+                else return message.content[0];
+            } catch (IOException e) {
+                isAvailable = false;
+                return null;
             }
-            else if (messageType == Message.PLAYER_ACTION) {
-                return lines[1];
-            }
-        } catch (IOException e) {
-            isAvailable = false;
-        }
         return null;
     }
 
     void send(Message messageType) {
-        String message = messageType.toString() + "\n";
-        if (messageType == Message.GAME_IS_READY) {
-            Vector mapSize = GAME.map.getSize();
-            message += mapSize.x + "\n" + mapSize.y;
-        }
-        else if (messageType == Message.GAME_STATE) {
-            message += serializer.serializeForPlayer(GAME, ID);
-        }
-        else if (messageType == Message.GAME_FINISHED) {
-            message += isWinner ? "WIN" : "LOSE";
-        }
-        try {
-            OUT.writeUTF(message);
-        } catch (IOException e) {
-            isAvailable = false;
-        }
+        if (this.isAvailable)
+            try {
+                OUT.writeUTF(GameMessage.getFullMessage(messageType, Content.get(messageType)));
+            } catch (IOException e) {
+                isAvailable = false;
+            }
     }
 
     void socketClosing() {

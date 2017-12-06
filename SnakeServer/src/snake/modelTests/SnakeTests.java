@@ -1,8 +1,12 @@
-package snake.tests;
+package snake.modelTests;
 
-import static org.junit.Assert.*;
 import org.junit.Test;
-import snake.*;
+import snake.Direction;
+import snake.Snake;
+import snake.Vector;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 public class SnakeTests 
 {

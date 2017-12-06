@@ -1,8 +1,10 @@
-package snake.tests;
+package snake.modelTests;
 
-import static org.junit.Assert.*;
 import org.junit.Test;
 import snake.*;
+
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class OracleTests 
 {

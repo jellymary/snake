@@ -1,10 +1,9 @@
-package snake.tests;
-
-import static org.junit.Assert.*;
-import static org.junit.jupiter.api.Assertions.assertNull;
+package snake.modelTests;
 
 import org.junit.Test;
 import snake.*;
+
+import static org.junit.Assert.*;
 
 public class AppleTests 
 {
@@ -15,7 +14,7 @@ public class AppleTests
         
         level.tick();
         
-        assertNull(level.map.get(new Vector(1, 0)));    
+        assertNull(level.map.get(new Vector(1, 0)));
     }
     
     @Test

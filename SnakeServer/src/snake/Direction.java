@@ -12,7 +12,7 @@ public class Direction
     {
         try
         {
-            return (Vector)Direction.class.getField(text.toUpperCase()).get(null);
+            return (Vector) Direction.class.getField(text.toUpperCase()).get(null);
         }
         catch (Exception ex)
         {
