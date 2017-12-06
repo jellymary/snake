@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.function.Supplier;
 
 public class Player {
     private Socket SOCKET;
@@ -17,7 +18,7 @@ public class Player {
     public boolean isWinner;
     public boolean isAvailable = true;
 
-    private HashMap<Message, String[]> Content = new HashMap<>();
+    private HashMap<Message, Supplier<String[]>> Content = new HashMap<>();
 
     Player(Socket socket)
     {
@@ -35,10 +36,10 @@ public class Player {
     }
 
     private void fillContent() {
-        Content.put(Message.GAME_IS_READY, new String[]{Integer.toString(GAME.map.getSize().x), Integer.toString(GAME.map.getSize().y)});
-        Content.put(Message.GAME_STATE, new String[]{serializer.serializeForPlayer(GAME, ID)});
-        Content.put(Message.GAME_STARTED, new String[]{});
-        Content.put(Message.GAME_FINISHED, new String[]{isWinner ? "WIN" : "LOSE"});
+        Content.put(Message.GAME_IS_READY, () -> new String[]{Integer.toString(GAME.map.getSize().x), Integer.toString(GAME.map.getSize().y)});
+        Content.put(Message.GAME_STATE, () -> new String[]{serializer.serializeForPlayer(GAME, ID)});
+        Content.put(Message.GAME_STARTED, () -> new String[]{});
+        Content.put(Message.GAME_FINISHED, () -> new String[]{isWinner ? "WIN" : "LOSE"});
     }
 
     public void setID(int id) { ID = id; }
@@ -64,7 +65,7 @@ public class Player {
     void send(Message messageType) {
         if (this.isAvailable)
             try {
-                OUT.writeUTF(GameMessage.getFullMessage(messageType, Content.get(messageType)));
+                OUT.writeUTF(GameMessage.getFullMessage(messageType, Content.get(messageType).get()));
             } catch (IOException e) {
                 isAvailable = false;
             }
