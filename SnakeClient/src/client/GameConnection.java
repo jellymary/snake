@@ -1,5 +1,7 @@
 package client;
 
+import client.Exceptions.IllegalGameMessageFormatException;
+
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

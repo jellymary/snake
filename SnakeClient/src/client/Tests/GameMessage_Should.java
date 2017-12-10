@@ -2,10 +2,8 @@ package client.Tests;
 
 import client.GameMessage;
 import client.GameMessageType;
-import client.IllegalGameMessageFormatException;
+import client.Exceptions.IllegalGameMessageFormatException;
 import org.junit.jupiter.api.Test;
-
-import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

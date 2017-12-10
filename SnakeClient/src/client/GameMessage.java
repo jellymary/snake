@@ -1,5 +1,7 @@
 package client;
 
+import client.Exceptions.IllegalGameMessageFormatException;
+import client.Utils.Size;
 import javafx.scene.input.KeyCode;
 
 import java.util.HashMap;

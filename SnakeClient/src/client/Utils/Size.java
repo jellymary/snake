@@ -1,4 +1,4 @@
-package client;
+package client.Utils;
 
 public class Size {
     public final int width;
