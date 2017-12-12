@@ -44,6 +44,13 @@ public class Player {
 
     public void setID(int id) { ID = id; }
 
+    public int getID() { return ID; }
+
+    @Override
+    public String toString() {
+        return SOCKET.getInetAddress().toString() + String.format("(%s)", NAME);
+    }
+
     String read (Message messageType) throws IllegalGameMessageFormatException {
         if (this.isAvailable)
             try {

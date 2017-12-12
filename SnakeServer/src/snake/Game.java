@@ -3,7 +3,7 @@ package snake;
 public class Game extends Thread {
     private Player[] PLAYERS;
 
-    public Game(Player[] players) {
+    public Game(Player... players) {
         PLAYERS = players;
         setPriority(NORM_PRIORITY);
         setDaemon(true);
@@ -25,13 +25,11 @@ public class Game extends Thread {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-        for (Player player : PLAYERS)
-            player.send(Message.GAME_STARTED);
-
-        Thread playerActionThread = new Thread(() -> {
-            while (game.state == LevelState.PLAYING)
-                for (Player player : PLAYERS) {
+        Thread[] playersActionThread = new Thread[PLAYERS.length];
+        for (Player player : PLAYERS) {
+            id = player.getID();
+            playersActionThread[id] = new Thread(() -> {
+                while (game.state == LevelState.PLAYING)
                     try {
                         String playerAction = player.read(Message.PLAYER_ACTION);
                         Vector direction = Direction.parse(playerAction);
@@ -40,10 +38,13 @@ public class Game extends Thread {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                }
-        });
-        playerActionThread.setDaemon(true);
-        playerActionThread.start();
+            });
+            playersActionThread[id].setDaemon(true);
+        }
+        for (Player player : PLAYERS) {
+            player.send(Message.GAME_STARTED);
+            playersActionThread[player.getID()].start();
+        }
 
         while (game.state == LevelState.PLAYING) {
             for (Player player : PLAYERS)
@@ -54,6 +55,7 @@ public class Game extends Thread {
             } catch (InterruptedException ignore) {}
         }
         for (Player player : PLAYERS) {
+            player.isWinner = game.state == LevelState.COMPLETED;
             player.send(Message.GAME_FINISHED);
             player.socketClosing();
         }

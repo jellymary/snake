@@ -31,10 +31,8 @@ public class Snake
     
     public void setDirection(Vector direction)
     {
-        synchronized(this){
             if (Vector.getScalarProduct(this.direction, direction) == 0)
                 this.direction = direction.clone();
-        }
     }
     
     public Vector getNextLocation()
