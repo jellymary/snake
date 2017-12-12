@@ -26,7 +26,7 @@ public class Main {
                 ArrayList<Player> players = sockets.get(playersCount);
                 players.add(currentPlayer);
                 if (players.size() == playersCount) {
-                    new Game((Player[]) players.toArray());
+                    new Game(players.toArray(new Player[players.size()]));
                     players.clear();
                 }
             }

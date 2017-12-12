@@ -51,6 +51,8 @@ public class ClientApplication extends Application {
         initGameEndScene();
 
         setUpVisualizations();
+
+        deserializer.registerDefaultObjects();
     }
 
     private void setUpVisualizations() {
@@ -101,7 +103,7 @@ public class ClientApplication extends Application {
             gameConnection = new SocketGameConnection(socket);
         } catch (IOException e) {
             Platform.runLater(() -> {
-                gameEndText.setText("Unknown error");
+                gameEndText.setText("Can't establish connection");
                 gameEndText.setFill(Color.RED);
                 primaryStage.setScene(gameEndScene);
             });
@@ -139,8 +141,6 @@ public class ClientApplication extends Application {
                                 this.changeDirection(desiredDirection);
                         } catch (IOException e) {
                             e.printStackTrace();
-                        } finally {
-                            keyEvent.consume();
                         }
                     });
                     gameSceneHolder.setControlsActive(true);
@@ -152,9 +152,16 @@ public class ClientApplication extends Application {
                 List<FieldObject> fieldObjects = deserializer.parseObjects(gameMessage.content);
                 List<Node> nodes = fieldObjects.stream()
                         .map(fieldObject -> {
+                            Node node;
                             if (visualizations.containsKey(fieldObject.getClass()))
-                                return visualizations.get(fieldObject.getClass()).apply(fieldObject);
-                            return getDefaultVisualization();
+                                node = visualizations.get(fieldObject.getClass()).apply(fieldObject);
+                            else
+                                node = getDefaultVisualization();
+                            double cellSize = gameSceneHolder.getCellSize();
+                            Location location = fieldObject.getLocation();
+                            node.setTranslateX(cellSize * location.x);
+                            node.setTranslateY(cellSize * location.y);
+                            return node;
                         })
                         .collect(Collectors.toList());
                 Platform.runLater(() -> gameSceneHolder.DrawField(nodes));

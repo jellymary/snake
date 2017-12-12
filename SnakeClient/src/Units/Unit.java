@@ -23,7 +23,7 @@ public abstract class Unit {
         try {
             gameConnection.sendMessage(GameMessage.makeRequestMessage(name, desiredPlayersNUmber));
 
-            prepareForGame(checkMessagesType(nextMessage(), GameMessageType.ClientIsReady));
+            prepareForGame(checkMessagesType(nextMessage(), GameMessageType.GameIsReady));
 
             gameConnection.sendMessage(GameMessage.makeClientIsReadyMessage());
 
@@ -40,10 +40,13 @@ public abstract class Unit {
 
             onGameFinished(serverMessage);
         } catch (IOException e) { // TODO log maybe?
+            e.printStackTrace();
             stopGameWithError("Network error");
         } catch (GameProcessCorruptedException | UnexpectedMessageTypeException e) {
+            e.printStackTrace();
             stopGameWithError("Game process corrupted");
         } catch (Exception e) {
+            e.printStackTrace();
             stopGameWithError("Unknown error");
         }
     }
@@ -68,6 +71,7 @@ public abstract class Unit {
 
     public void changeDirection(Direction desiredDirection) throws IOException {
         gameConnection.sendMessage(GameMessage.makePlayersActionMessage(desiredDirection));
+        System.out.println("Sent player's action!");
     }
 
     protected abstract void onGameFinished(GameMessage gameMessage);

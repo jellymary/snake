@@ -28,8 +28,12 @@ public class FieldDeserializer {
         } catch (CoordinatesFormatException e) {
             return;
         }
-        while (!stringQueue.empty() && !isEndOfObject(stringQueue.peek()))
-            lines.add(stringQueue.pop());
+        while (!stringQueue.empty()) {
+            String line = stringQueue.pop();
+            if (isEndOfObject(line))
+                break;
+            lines.add(line);
+        }
 
         VarArgsFunction<String, FieldObject> creator = createFieldObjectByName.get(name);
         if (creator == null)
@@ -40,7 +44,7 @@ public class FieldDeserializer {
     }
 
     private Location parseLocation(String line) throws CoordinatesFormatException {
-        String[] words = line.split("\\w+", 2);
+        String[] words = line.split(" ", 2);
         int x, y;
         try {
             x = Integer.parseInt(words[0]);

@@ -93,7 +93,7 @@ public class GameMessage {
 
         String[] lines = serverMessage.content.split("\n", 2);
 
-        return new Size(Integer.parseInt(lines[0]), Integer.parseInt(lines[0]));
+        return new Size(Integer.parseInt(lines[0]), Integer.parseInt(lines[1]));
     }
 
     public static GameResult parseFinishResult(GameMessage serverMessage) {

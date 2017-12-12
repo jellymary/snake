@@ -16,7 +16,7 @@ public class StringLinesQueue implements StringSplitQueue {
             return cachedPeek;
         if (index >= text.length())
             return null;
-        int endOfLine = text.indexOf('\n', index + 1);
+        int endOfLine = text.indexOf('\n', index);
         if (endOfLine == -1)
             endOfLine = text.length();
         cachedPeek = text.substring(index, endOfLine);
