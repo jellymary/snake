@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class GameMessage_Should {
-    String content = "con\ntet";
+class GameMessage_Should {
+    private String content = "con\ntet";
 
     @Test
     void content_ShouldBeFromSecondLineTillTheEndOfRaw() throws Exception {
@@ -20,8 +20,33 @@ public class GameMessage_Should {
     }
 
     @Test
-    void _ShouldBeParsedCorrectly() throws IllegalGameMessageFormatException {
+    void GameFinished_ShouldBeParsedCorrectly() throws IllegalGameMessageFormatException {
         assertGameMessageTypeParsedCorrectly(GameMessageType.GameFinished, "GAME_FINISHED");
+    }
+
+    @Test
+    void ClientIsReady_ShouldBeParsedCorrectly() throws IllegalGameMessageFormatException {
+        assertGameMessageTypeParsedCorrectly(GameMessageType.ClientIsReady, "CLIENT_IS_READY");
+    }
+
+    @Test
+    void GameStarted_ShouldBeParsedCorrectly() throws IllegalGameMessageFormatException {
+        assertGameMessageTypeParsedCorrectly(GameMessageType.GameStarted, "GAME_STARTED");
+    }
+
+    @Test
+    void GameIsReady_ShouldBeParsedCorrectly() throws IllegalGameMessageFormatException {
+        assertGameMessageTypeParsedCorrectly(GameMessageType.GameIsReady, "GAME_IS_READY");
+    }
+
+    @Test
+    void GameState_ShouldBeParsedCorrectly() throws IllegalGameMessageFormatException {
+        assertGameMessageTypeParsedCorrectly(GameMessageType.GameState, "GAME_STATE");
+    }
+
+    @Test
+    void PlayersAction_ShouldBeParsedCorrectly() throws IllegalGameMessageFormatException {
+        assertGameMessageTypeParsedCorrectly(GameMessageType.PlayersAction, "PLAYER_ACTION");
     }
 
     private void assertGameMessageTypeParsedCorrectly(GameMessageType expectedType, String strMessageType) throws IllegalGameMessageFormatException {
