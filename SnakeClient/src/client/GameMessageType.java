@@ -1,5 +1,5 @@
 package client;
 
 public enum GameMessageType {
-    Request, ClientIsReady, PlayersAction, GameIsReady, GameState, GameFinished, GameStarted,
+    Request, GameIsReady, ClientIsReady, GameStarted, GameState, PlayersAction, GameFinished,
 }

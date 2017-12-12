@@ -1,4 +1,4 @@
-package client;
+package client.Utils;
 
 public interface Doer {
     void act();

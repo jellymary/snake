@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.SubScene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.paint.Color;
 
 import java.util.List;
 
@@ -25,9 +26,11 @@ public class GameSceneHolder implements SceneHolder {
         WINDOW_WIDTH = windowWidth;
 
         gameArea = new SubScene(fieldObjects, 1, 1);
+        gameArea.setFill(Color.WHITE);
         gameArea.setLayoutX(WINDOW_WIDTH / 2);
         gameArea.setLayoutY(WINDOW_HEIGHT / 2);
         scene = new Scene(new Group(gameArea));
+        scene.setFill(Color.BLUE);
 
         gameArea.setOnKeyPressed(this::handleKeyPressed);
     }

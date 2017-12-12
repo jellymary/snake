@@ -1,5 +1,10 @@
 package client;
 
+import FieldObjects.*;
+import Units.Unit;
+import client.Utils.Direction;
+import client.Utils.GameResult;
+import client.Utils.Size;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -8,6 +13,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -18,10 +24,13 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ClientApplication extends Application {
     private static final double WINDOW_HEIGHT = 480;
@@ -33,6 +42,7 @@ public class ClientApplication extends Application {
     private Scene gameEndScene;
     private Text gameEndText = new Text();
     private final FieldDeserializer deserializer = new FieldDeserializer();
+    private final Map<Type, Function<FieldObject, Node>> visualizations = new HashMap<>();
 
     @Override
     public void init() {
@@ -40,14 +50,17 @@ public class ClientApplication extends Application {
         gameSceneHolder = new GameSceneHolder(WINDOW_WIDTH, WINDOW_HEIGHT);
         initGameEndScene();
 
-        setUpDeserializer();
+        setUpVisualizations();
+
+        deserializer.registerDefaultObjects();
     }
 
-    private void setUpDeserializer() {
-        deserializer.registerVisualization("Apple", (size) -> makeCircleObject(size, Color.RED));
-        deserializer.registerVisualization("Gum", (size) -> makeCircleObject(size, Color.PINK));
-        deserializer.registerVisualization("Mushroom", (size) -> {
+    private void setUpVisualizations() {
+        visualizations.put(Apple.class, (object) -> makeCircleObject(gameSceneHolder.getCellSize(), Color.RED));
+        visualizations.put(Gum.class, (object) -> makeCircleObject(gameSceneHolder.getCellSize(), Color.PINK));
+        visualizations.put(Mushroom.class, (object) -> {
             Group group = new Group();
+            double size = gameSceneHolder.getCellSize();
             Node hat = Shape.subtract(new Circle(size / 2, Color.BROWN), new Rectangle(-size / 2, 0, size, size));
             group.getChildren().add(hat);
             group.getChildren().add(new Rectangle(-size / 4, 0, size / 2, size / 2));
@@ -55,11 +68,11 @@ public class ClientApplication extends Application {
             group.setLayoutY(size / 2);
             return group;
         });
-        deserializer.registerVisualization("Portal", (size) -> makeCircleObject(size, Color.BLUE));
-        deserializer.registerVisualization("Head", (size) -> makeCircleObject(size, Color.LIGHTGREEN));
-        deserializer.registerVisualization("Body", (size) -> makeCircleObject(size, Color.GREEN));
-        deserializer.registerVisualization("Wall", (size) -> new Rectangle(size, size, Color.GRAY));
-        deserializer.registerVisualization("Oracle", (size) -> new Rectangle(size, size, Color.BLUE));
+        visualizations.put(Portal.class, (object) -> makeCircleObject(gameSceneHolder.getCellSize(), Color.BLUE));
+        visualizations.put(Head.class, (object) -> makeCircleObject(gameSceneHolder.getCellSize(), Color.LIGHTGREEN));
+        visualizations.put(Body.class, (object) -> makeCircleObject(gameSceneHolder.getCellSize(), Color.GREEN));
+        visualizations.put(Wall.class, (object) -> new Rectangle(gameSceneHolder.getCellSize(), gameSceneHolder.getCellSize(), Color.GRAY));
+        visualizations.put(Oracle.class, (object) -> new Rectangle(gameSceneHolder.getCellSize(), gameSceneHolder.getCellSize(), Color.BLUE));
     }
 
     private Circle makeCircleObject(Double size, Paint fill) {
@@ -84,10 +97,99 @@ public class ClientApplication extends Application {
         actionEvent.consume();
     }
 
-    private void connectAndPlayGameThroughSocket(Socket socket, String name, int desiredPlayersNUmber) throws IOException {
+    private void connectAndPlayGameThroughSocket(Socket socket, String name, int desiredPlayersNumber) {
+        SocketGameConnection gameConnection;
         try {
-            GameConnection gameConnection = new GameConnection(socket);
-            gameConnection.sendMessage(GameMessage.makeRequestMessage(name, desiredPlayersNUmber));
+            gameConnection = new SocketGameConnection(socket);
+        } catch (IOException e) {
+            Platform.runLater(() -> {
+                gameEndText.setText("Can't establish connection");
+                gameEndText.setFill(Color.RED);
+                primaryStage.setScene(gameEndScene);
+            });
+            return;
+        }
+
+        Map<KeyCode, Direction> keyCodeDirectionMap = new HashMap<>();
+        keyCodeDirectionMap.put(KeyCode.UP, Direction.Up);
+        keyCodeDirectionMap.put(KeyCode.DOWN, Direction.Down);
+        keyCodeDirectionMap.put(KeyCode.LEFT, Direction.Left);
+        keyCodeDirectionMap.put(KeyCode.RIGHT, Direction.Right);
+
+        Map<GameResult, String> gameResultStringMap = new HashMap<>();
+        gameResultStringMap.put(GameResult.LOSS, "You suck!");
+        gameResultStringMap.put(GameResult.WIN, "You suck anyway!");
+        gameResultStringMap.put(GameResult.TIE, "Your opponents suck too!");
+
+        Unit player = new Unit(name, gameConnection) {
+            @Override
+            protected void prepareForGame(GameMessage gameMessage) {
+                Size fieldSize = GameMessage.parseFieldSize(gameMessage);
+                Platform.runLater(() -> {
+                    primaryStage.setScene(gameSceneHolder.getScene());
+                    arrangeGameScene(fieldSize);
+                });
+            }
+
+            @Override
+            protected void onGameStarted(GameMessage gameMessage) {
+                Platform.runLater(() -> {
+                    gameSceneHolder.setOnControlsKeyPressed((keyEvent) -> {
+                        try {
+                            Direction desiredDirection = keyCodeDirectionMap.get(keyEvent.getCode());
+                            if (desiredDirection != null)
+                                this.changeDirection(desiredDirection);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    gameSceneHolder.setControlsActive(true);
+                });
+            }
+
+            @Override
+            protected void handleState(GameMessage gameMessage) {
+                List<FieldObject> fieldObjects = deserializer.parseObjects(gameMessage.content);
+                List<Node> nodes = fieldObjects.stream()
+                        .map(fieldObject -> {
+                            Node node;
+                            if (visualizations.containsKey(fieldObject.getClass()))
+                                node = visualizations.get(fieldObject.getClass()).apply(fieldObject);
+                            else
+                                node = getDefaultVisualization();
+                            double cellSize = gameSceneHolder.getCellSize();
+                            Location location = fieldObject.getLocation();
+                            node.setTranslateX(cellSize * location.x);
+                            node.setTranslateY(cellSize * location.y);
+                            return node;
+                        })
+                        .collect(Collectors.toList());
+                Platform.runLater(() -> gameSceneHolder.DrawField(nodes));
+            }
+
+            @Override
+            protected void onGameFinished(GameMessage gameMessage) {
+                Platform.runLater(() -> {
+                    gameEndText.setText(gameResultStringMap.get(GameMessage.parseFinishResult(gameMessage)));
+                    gameEndText.setFill(Color.BLACK);
+                    primaryStage.setScene(gameEndScene);
+                });
+            }
+
+            @Override
+            protected void stopGameWithError(String errorMessage) {
+                Platform.runLater(() -> {
+                    gameEndText.setText(errorMessage);
+                    gameEndText.setFill(Color.RED);
+                    primaryStage.setScene(gameEndScene);
+                });
+            }
+        };
+
+        player.run(desiredPlayersNumber);
+        /*try {
+
+            gameConnection.sendMessage(GameMessage.makeRequestMessage(name, desiredPlayersNumber));
 
             Platform.runLater(() -> primaryStage.setScene(gameSceneHolder.getScene()));
 
@@ -98,63 +200,85 @@ public class ClientApplication extends Application {
                 try {
                     serverMessage = gameConnection.receiveMessage();
                 } catch (IllegalGameMessageFormatException e) {
-                    endMessage.set("Connection format error");
-                    shouldRun.set(false);
+                    endGameFromThread(endMessage, shouldRun, "Connection format error");
                     break;
                 }
 
 
                 switch (serverMessage.messageType) {
                     case GameIsReady:
-                        Size fieldSize = GameMessage.parseFieldSize(serverMessage);
-                        Platform.runLater(() -> {
-                            arrangeGameScene(fieldSize);
-                        });
-                        try {
-                            gameConnection.sendMessage(GameMessage.makeClientIsReadyMessage());
-                        } catch (IOException e) {
-                            endMessage.set("Network error");
-                            shouldRun.set(false);
-                        }
+                        prepareGameFromThread(gameConnection, endMessage, shouldRun, serverMessage);
                         break;
                     case GameStarted:
-                        Platform.runLater(() -> {
-                            gameSceneHolder.setOnControlsKeyPressed((keyEvent) -> {
-                                try {
-                                    gameConnection.sendMessage(GameMessage.makePlayersActionMessage(keyEvent.getCode()));
-                                } catch (IOException e) {
-                                    endMessage.set("Connection lost");
-                                    shouldRun.set(false);
-                                }
-                            });
-                            gameSceneHolder.setControlsActive(true);
-                        });
+                        startGameFromThread(gameConnection, endMessage, shouldRun);
                         break;
                     case GameState:
-                        List<Node> nodes = deserializer.parseNodes(serverMessage.content, gameSceneHolder.getCellSize());
-                        Platform.runLater(() -> gameSceneHolder.DrawField(nodes));
+                        drawFieldFromMessageFromThread(serverMessage);
                         break;
                     case GameFinished:
-                        endMessage.set(GameMessage.parseFinishResult(serverMessage));
-                        shouldRun.set(false);
+                        endGameFromThread(endMessage, shouldRun, GameMessage.parseFinishResult(serverMessage));
                         break;
                 }
             }
             showGameEndSceneWithMessageAsync(endMessage.get());
         } catch (Exception e) {
-            e.printStackTrace();//todo log
+            //todo log
             showGameEndSceneWithMessageAsync("Unknown error");
+        }*/
+    }
+
+    /*private void prepareGameFromThread(SocketGameConnection gameConnection, AtomicReference<String> endMessage, AtomicBoolean shouldRun, GameMessage serverMessage) {
+        Size fieldSize = GameMessage.parseFieldSize(serverMessage);
+        Platform.runLater(() -> arrangeGameScene(fieldSize));
+        try {
+            gameConnection.sendMessage(GameMessage.makeClientIsReadyMessage());
+        } catch (IOException e) {
+            endGameFromThread(endMessage, shouldRun, "Network error");
         }
+    }*/
+
+    /*private void startGameFromThread(SocketGameConnection gameConnection, AtomicReference<String> endMessage, AtomicBoolean shouldRun) {
+        Platform.runLater(() -> {
+            gameSceneHolder.setOnControlsKeyPressed((keyEvent) -> {
+                try {
+                    gameConnection.sendMessage(GameMessage.makePlayersActionMessage(keyEvent.getCode()));
+                } catch (IOException e) {
+                    endGameFromThread(endMessage, shouldRun, "Connection lost");
+                }
+            });
+            gameSceneHolder.setControlsActive(true);
+        });
+    }*/
+
+    /*private void endGameFromThread(AtomicReference<String> endMessage, AtomicBoolean shouldRun, String s) {
+        endMessage.set(s);
+        shouldRun.set(false);
+    }*/
+
+    /*private void drawFieldFromMessageFromThread(GameMessage serverMessage) {
+        List<FieldObject> fieldObjects = deserializer.parseObjects(serverMessage.content);
+        List<Node> nodes = fieldObjects.stream()
+                .map(fieldObject -> {
+                    if (visualizations.containsKey(fieldObject.getClass()))
+                        return visualizations.get(fieldObject.getClass()).apply(fieldObject);
+                    return getDefaultVisualization();
+                })
+                .collect(Collectors.toList());
+        Platform.runLater(() -> gameSceneHolder.DrawField(nodes));
+    }*/
+
+    private Node getDefaultVisualization() {
+        return new Rectangle(gameSceneHolder.getCellSize(), gameSceneHolder.getCellSize(), Color.BLACK);
     }
 
-    private void showGameEndSceneWithMessageAsync(String message) {
+    /*private void showGameEndSceneWithMessageAsync(String message) {
         Platform.runLater(() -> showGameEndSceneWithMessage(message));
-    }
+    }*/
 
-    private void showGameEndSceneWithMessage(String message) {
+    /*private void showGameEndSceneWithMessage(String message) {
         gameEndText.setText(message);
         primaryStage.setScene(gameEndScene);
-    }
+    }*/
 
     private void arrangeGameScene(Size size) {
         gameSceneHolder.clear();

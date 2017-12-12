@@ -1,56 +1,84 @@
 package client;
 
-import javafx.scene.Node;
+import FieldObjects.*;
+import client.Exceptions.CoordinatesFormatException;
+import client.Utils.StringLinesQueue;
+import client.Utils.StringSplitQueue;
+import client.Utils.VarArgsFunction;
 
 import java.util.*;
-import java.util.function.Function;
 
 public class FieldDeserializer {
-    private Map<String, Function<Double, Node>> createNodeByName = new HashMap<>();
+    private Map<String, VarArgsFunction<String, FieldObject>> createFieldObjectByName = new HashMap<>();
 
-    public List<Node> parseNodes(String serialization, double size) {
-        List<Node> result = new ArrayList<>();
-        int index = 0;
-        while (index < serialization.length()) {
-            index = serializeImpl(result, serialization, index, size);
+    public List<FieldObject> parseObjects(String serialization) {
+        List<FieldObject> result = new ArrayList<>();
+        StringLinesQueue stringLinesQueue = new StringLinesQueue(serialization);
+        while (!stringLinesQueue.empty())
+            serializeImpl(result, stringLinesQueue);
+        return result;
+    }
+
+    private void serializeImpl(List<FieldObject> result, StringSplitQueue stringQueue) {
+        String name = parseName(stringQueue.pop());
+        Collection<String> lines = new LinkedList<>();
+        Location location;
+        try {
+            location = parseLocation(stringQueue.pop());
+        } catch (CoordinatesFormatException e) {
+            return;
         }
-        return result;
+        while (!stringQueue.empty()) {
+            String line = stringQueue.pop();
+            if (isEndOfObject(line))
+                break;
+            lines.add(line);
+        }
+
+        VarArgsFunction<String, FieldObject> creator = createFieldObjectByName.get(name);
+        if (creator == null)
+            return;
+        FieldObject fieldObject = creator.apply(lines.toArray(new String[lines.size()]));
+        fieldObject.setLocation(location);
+        result.add(fieldObject);
     }
 
-    private int serializeImpl(List<Node> result, String serialization, int index, double size) {
-        String name;
-        int endOfLine = endOfLineFrom(serialization, index);
+    private Location parseLocation(String line) throws CoordinatesFormatException {
+        String[] words = line.split(" ", 2);
+        int x, y;
+        try {
+            x = Integer.parseInt(words[0]);
+            y = Integer.parseInt(words[1]);
+        } catch (NumberFormatException e) {
+            throw new CoordinatesFormatException(e);
+        }
+        return new Location(x, y);
+    }
 
-        name = serialization.substring(index, endOfLine).trim();
-        int indexOfDot = name.lastIndexOf('.');
+    private boolean isEndOfObject(String line) {
+        return line.trim().length() == 0;
+    }
+
+    private String parseName(String line) {
+        String name = line;
+        int indexOfDot = line.lastIndexOf('.');
         if (indexOfDot != -1)
-            name = name.substring(indexOfDot + 1);
-
-        index = endOfLine + 1;
-        endOfLine = endOfLineFrom(serialization, index);
-        String[] splitedCoordinates = serialization.substring(index, endOfLine).split("\\s+", 2);
-        endOfLine = serialization.indexOf('\n', index);
-        String coordinates = serialization.substring(index, endOfLine);
-        index = endOfLine + 1;
-
-        int x = Integer.parseInt(splitedCoordinates[0]);
-        int y = Integer.parseInt(splitedCoordinates[1]);
-
-        Node node = createNodeByName.get(name).apply(size);
-        node.setTranslateX(x * size);
-        node.setTranslateY(y * size);
-        result.add(node);
-        return index;
+            name = line.substring(indexOfDot + 1);
+        return name.trim();
     }
 
-    private static int endOfLineFrom(String string, int index) {
-        int result = string.indexOf('\n', index);
-        if (result == -1)
-            return string.length();
-        return result;
+    public void registerObjectName(String name, VarArgsFunction<String, FieldObject> creator) {
+        createFieldObjectByName.put(name, creator);
     }
 
-    public void registerVisualization(String name, Function<Double, Node> visualizer) {
-        createNodeByName.put(name, visualizer);
+    public void registerDefaultObjects() {
+        registerObjectName("Apple", (String[] lines) -> new Apple());
+        registerObjectName("Gum", (String[] lines) -> new Gum());
+        registerObjectName("Mushroom", (String[] lines) -> new Mushroom());
+        registerObjectName("Portal", (String[] lines) -> new Portal());
+        registerObjectName("Head", (String[] lines) -> new Head()); //TODO
+        registerObjectName("Body", (String[] lines) -> new Body()); //TODO
+        registerObjectName("Wall", (String[] lines) -> new Wall());
+        registerObjectName("Oracle", (String[] lines) -> new Oracle());
     }
 }

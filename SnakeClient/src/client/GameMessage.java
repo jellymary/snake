@@ -1,5 +1,9 @@
 package client;
 
+import client.Exceptions.IllegalGameMessageFormatException;
+import client.Utils.Direction;
+import client.Utils.GameResult;
+import client.Utils.Size;
 import javafx.scene.input.KeyCode;
 
 import java.util.HashMap;
@@ -46,10 +50,25 @@ public class GameMessage {
         return endOfFirstLine;
     }
 
-    public static GameMessage makePlayersActionMessage(KeyCode code) {
-        if (!code.isArrowKey())
-            throw new IllegalArgumentException("Arrow key code expected");
-        return new GameMessage(GameMessageType.PlayersAction, code.getName() + "\n");
+    public static GameMessage makePlayersActionMessage(Direction desiredDirection) {
+        String content;
+        switch (desiredDirection) {
+            case Up:
+                content = "UP";
+                break;
+            case Down:
+                content = "DOWN";
+                break;
+            case Left:
+                content = "LEFT";
+                break;
+            case Right:
+                content = "RIGHT";
+                break;
+            default:
+                throw new IllegalArgumentException();
+        }
+        return new GameMessage(GameMessageType.PlayersAction, content + "\n");
     }
 
     public static GameMessage makeRequestMessage(String name, int desiredPlayersNumber) {
@@ -74,20 +93,22 @@ public class GameMessage {
 
         String[] lines = serverMessage.content.split("\n", 2);
 
-        return new Size(Integer.parseInt(lines[0]), Integer.parseInt(lines[0]));
+        return new Size(Integer.parseInt(lines[0]), Integer.parseInt(lines[1]));
     }
 
-    public static String parseFinishResult(GameMessage serverMessage) {
+    public static GameResult parseFinishResult(GameMessage serverMessage) {
         if (serverMessage.messageType != GameMessageType.GameFinished)
             throw new IllegalArgumentException("Message type should be " + GameMessageType.GameFinished.name());
 
         switch (serverMessage.content.split("\n", 1)[0]) {
             case "WIN":
-                return "Win!";
+                return GameResult.WIN;
             case "LOSE":
-                return "Lose!";
+                return GameResult.LOSS;
+            case "TIE":
+                return GameResult.TIE;
             default:
-                return "<unknown result>";
+                throw new IllegalArgumentException("Can't recognize game result");
         }
     }
 }

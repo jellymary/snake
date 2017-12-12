@@ -1,17 +1,21 @@
 package snake;
 
 public class LevelSerializer implements Serializer<Level>{
+    private static final String OBJECT_SEPARATOR = "\n";
+
     @Override
     public String serializeForPlayer(Level level, int playerId) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("Head ")/*.append(playerId)*/.append("\n");
+        sb.append("Head").append("\n");
         serializeVector(sb, level.snake.getHeadLocation());
+        sb.append(OBJECT_SEPARATOR);
 
         Vector[] body = level.snake.getTrace();
         for (int i = 1; i < body.length; i++) {
-            sb.append("Body\n");
+            sb.append("Body").append("\n");
             serializeVector(sb, body[i]);
+            sb.append(OBJECT_SEPARATOR);
         }
 
         for (int x = 0; x < level.map.getSize().x; x++)
@@ -28,6 +32,7 @@ public class LevelSerializer implements Serializer<Level>{
         String name = object.getClass().getName();
         sb.append(name).append('\n');
         serializeVector(sb, object.getLocation());
+        sb.append(OBJECT_SEPARATOR);
     }
 
     private void serializeVector(StringBuilder sb, Vector vector) {
