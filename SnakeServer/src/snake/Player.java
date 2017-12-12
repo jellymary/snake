@@ -8,57 +8,54 @@ import java.util.HashMap;
 import java.util.function.Supplier;
 
 public class Player {
-    private Socket SOCKET;
-    private DataInputStream IN;
-    private DataOutputStream OUT;
+    private Socket socket;
+    private DataInputStream input;
+    private DataOutputStream output;
     private LevelSerializer serializer;
-    private String NAME;
-    private Level GAME;
-    private int ID;
+    private String name;
+    private Level game;
+    public int ID;
     public boolean isWinner;
     public boolean isAvailable = true;
+    public Thread actionThread;
 
     private HashMap<Message, Supplier<String[]>> Content = new HashMap<>();
 
     Player(Socket socket)
     {
-        SOCKET = socket;
+        this.socket = socket;
         try {
-            IN = new DataInputStream(socket.getInputStream());
-            OUT = new DataOutputStream(socket.getOutputStream());
+            input = new DataInputStream(socket.getInputStream());
+            output = new DataOutputStream(socket.getOutputStream());
         } catch (IOException ignore) {}
         serializer = new LevelSerializer();
     }
 
     public void setGame(Level level) {
-        GAME = level;
+        game = level;
         fillContent();
     }
 
     private void fillContent() {
-        Content.put(Message.GAME_IS_READY, () -> new String[]{Integer.toString(GAME.map.getSize().x), Integer.toString(GAME.map.getSize().y)});
-        Content.put(Message.GAME_STATE, () -> new String[]{serializer.serializeForPlayer(GAME, ID)});
+        Content.put(Message.GAME_IS_READY, () -> new String[]{Integer.toString(game.map.getSize().x), Integer.toString(game.map.getSize().y)});
+        Content.put(Message.GAME_STATE, () -> new String[]{serializer.serializeForPlayer(game, ID)});
         Content.put(Message.GAME_STARTED, () -> new String[]{});
         Content.put(Message.GAME_FINISHED, () -> new String[]{isWinner ? "WIN" : "LOSE"});
     }
 
-    public void setID(int id) { ID = id; }
-
-    public int getID() { return ID; }
-
     @Override
     public String toString() {
-        return SOCKET.getInetAddress().toString() + String.format("(%s)", NAME);
+        return socket.getInetAddress().toString() + String.format("(%s)", name);
     }
 
     String read (Message messageType) throws IllegalGameMessageFormatException {
         if (this.isAvailable)
             try {
-                GameMessage message = new GameMessage(IN.readUTF());
+                GameMessage message = new GameMessage(input.readUTF());
                 if (messageType != message.messageType)
                     throw new IllegalGameMessageFormatException("Another type of message was expected");
                 if (messageType.equals(Message.REQUEST)) {
-                    this.NAME = message.content[0];
+                    this.name = message.content[0];
                     return message.content[1];
                 }
                 else return message.content[0];
@@ -72,7 +69,7 @@ public class Player {
     void send(Message messageType) {
         if (this.isAvailable)
             try {
-                OUT.writeUTF(GameMessage.getFullMessage(messageType, Content.get(messageType).get()));
+                output.writeUTF(GameMessage.getFullMessage(messageType, Content.get(messageType).get()));
             } catch (IOException e) {
                 isAvailable = false;
             }
@@ -80,7 +77,7 @@ public class Player {
 
     void socketClosing() {
         try {
-            SOCKET.close();
+            socket.close();
         } catch (IOException ignore) {}
     }
 }

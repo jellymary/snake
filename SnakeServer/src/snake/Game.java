@@ -1,10 +1,12 @@
 package snake;
 
 public class Game extends Thread {
-    private Player[] PLAYERS;
+    private Player[] players;
+    private Level game;
+    private int delay = 1000;
 
     public Game(Player... players) {
-        PLAYERS = players;
+        this.players = players;
         setPriority(NORM_PRIORITY);
         setDaemon(true);
         start();
@@ -12,23 +14,25 @@ public class Game extends Thread {
 
     @Override
     public void run() {
-        Level game = new LevelLoader().loadRandomLevel();
-        int id = 0;
-        for (Player player : PLAYERS) {
-            player.setID(id++);
-            player.setGame(game);
-            player.send(Message.GAME_IS_READY);
-        }
-        for (Player player : PLAYERS)
+        this.game = new LevelLoader().loadRandomLevel();
+        sendGameReadinessMessage();
+        readClientsReadinessMessage();
+        createPlayerActionThreads();
+        sendGameStartingMessage();
+
+        while (game.state == LevelState.PLAYING) {
+            sendGameStateMessage();
+            game.tick();
             try {
-                player.read(Message.CLIENT_IS_READY);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        Thread[] playersActionThread = new Thread[PLAYERS.length];
-        for (Player player : PLAYERS) {
-            id = player.getID();
-            playersActionThread[id] = new Thread(() -> {
+                sleep(delay);
+            } catch (InterruptedException ignore) {}
+        }
+        sendGameEndingMessage();
+    }
+
+    private void createPlayerActionThreads() {
+        for (Player player : players) {
+            player.actionThread = new Thread(() -> {
                 while (game.state == LevelState.PLAYING)
                     try {
                         String playerAction = player.read(Message.PLAYER_ACTION);
@@ -39,22 +43,42 @@ public class Game extends Thread {
                         e.printStackTrace();
                     }
             });
-            playersActionThread[id].setDaemon(true);
+            player.actionThread.setDaemon(true);
         }
-        for (Player player : PLAYERS) {
-            player.send(Message.GAME_STARTED);
-            playersActionThread[player.getID()].start();
-        }
+    }
 
-        while (game.state == LevelState.PLAYING) {
-            for (Player player : PLAYERS)
-                player.send(Message.GAME_STATE);
-            game.tick();
-            try {
-                sleep(1000);
-            } catch (InterruptedException ignore) {}
+    private void sendGameStateMessage() {
+        for (Player player : players)
+        player.send(Message.GAME_STATE);
+    }
+
+    private void sendGameReadinessMessage() {
+        int id = 0;
+        for (Player player : players) {
+            player.ID = id++;
+            player.setGame(game);
+            player.send(Message.GAME_IS_READY);
         }
-        for (Player player : PLAYERS) {
+    }
+
+    private void readClientsReadinessMessage() {
+        for (Player player : players)
+            try {
+                player.read(Message.CLIENT_IS_READY);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+    }
+
+    private void sendGameStartingMessage() {
+        for (Player player : players) {
+            player.send(Message.GAME_STARTED);
+            player.actionThread.start();
+        }
+    }
+
+    private void sendGameEndingMessage() {
+        for (Player player : players) {
             player.isWinner = game.state == LevelState.COMPLETED;
             player.send(Message.GAME_FINISHED);
             player.socketClosing();
