@@ -2,10 +2,9 @@ package snake.connectionTests;
 
 
 import org.junit.Test;
-import snake.Game;
-import snake.GameMessage;
-import snake.IllegalGameMessageFormatException;
-import snake.Message;
+import snake.connection.GameMessage;
+import snake.connection.IllegalGameMessageFormatException;
+import snake.connection.Message;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
