@@ -13,15 +13,17 @@ public class Player {
     private Socket socket;
     private DataInputStream input;
     private DataOutputStream output;
+
+    public Thread actionThread;
     private LevelSerializer serializer;
-    private String name;
     private Game game;
+
+    private String name;
     public int ID;
     public boolean isWinner;
     public boolean isAvailable = true;
-    public Thread actionThread;
 
-    private HashMap<Message, Supplier<String[]>> Content = new HashMap<>();
+    private HashMap<Message, Supplier<String[]>> content = new HashMap<>();
 
     Player(Socket socket)
     {
@@ -39,14 +41,14 @@ public class Player {
     }
 
     private void fillContent() {
-        Content.put(Message.GAME_IS_READY, () -> new String[]{
+        content.put(Message.GAME_IS_READY, () -> new String[]{
                 Integer.toString(game.getField().getWidth()),
                 Integer.toString(game.getField().getHeight()),
                 //Integer.toString(this.ID)
         });
-        Content.put(Message.GAME_STATE, () -> new String[]{serializer.serializeForPlayer(game, ID)});
-        Content.put(Message.GAME_STARTED, () -> new String[]{});
-        Content.put(Message.GAME_FINISHED, () -> new String[]{isWinner ? "WIN" : "LOSE"});
+        content.put(Message.GAME_STATE, () -> new String[]{serializer.serializeForPlayer(game, ID)});
+        content.put(Message.GAME_STARTED, () -> new String[]{});
+        content.put(Message.GAME_FINISHED, () -> new String[]{isWinner ? "WIN" : "LOSE"});
     }
 
     @Override
@@ -75,7 +77,7 @@ public class Player {
     void send(Message messageType) {
         if (this.isAvailable)
             try {
-                output.writeUTF(GameMessage.getFullMessage(messageType, Content.get(messageType).get()));
+                output.writeUTF(GameMessage.getFullMessage(messageType, content.get(messageType).get()));
             } catch (IOException e) {
                 isAvailable = false;
             }

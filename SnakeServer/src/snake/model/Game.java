@@ -28,10 +28,12 @@ public class Game implements IGame {
 
     public Boolean isPlaying() {
         Boolean isPlaying = false;
+        if (field.getSnakeCount() == 1)
+            return field.getSnakeHead(0).isAlive();
         for (int i = 0; i < field.getSnakeCount(); i++) {
-            isPlaying =  !isPlaying && this.field.getSnakeHead(i).isAlive();
             if (isPlaying && this.field.getSnakeHead(i).isAlive())
                 return true;
+            isPlaying =  !isPlaying && this.field.getSnakeHead(i).isAlive();
         }
         return false;
     }

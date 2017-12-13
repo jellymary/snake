@@ -29,11 +29,13 @@ public final class FieldGenerators {
 
         Random random = new Random();
         int index = 0;
+        Vector direction = Vector.RIGHT;
         while (index < playerCount) {
-            int y = random.nextInt(field.getHeight());
             int x = random.nextInt(field.getWidth());
+            int y = random.nextInt(field.getHeight());
             Location location = new Location(x, y);
-            if (field.getObjectAt(location) == null) {
+            Location nextLocation = location.moved(direction);
+            if (field.getObjectAt(location) == null && field.getObjectAt(nextLocation) == null) {
                 SnakeHead snake = new SnakeHead(index, location,null, Vector.RIGHT, field);
                 field.addObject(snake);
                 index++;

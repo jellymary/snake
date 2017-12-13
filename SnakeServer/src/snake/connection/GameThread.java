@@ -26,10 +26,10 @@ public class GameThread extends Thread {
 
         while (game.isPlaying()) {
             sendGameStateMessage();
-            game.tick();
             try {
                 sleep(delay);
             } catch (InterruptedException ignore) {}
+            game.tick();
         }
         sendGameEndingMessage();
     }
