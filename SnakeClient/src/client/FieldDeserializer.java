@@ -76,7 +76,7 @@ public class FieldDeserializer {
         registerObjectName("Gum", (String[] lines) -> new Gum());
         registerObjectName("Mushroom", (String[] lines) -> new Mushroom());
         registerObjectName("Portal", (String[] lines) -> new Portal());
-        registerObjectName("Head", (String[] lines) -> new Head()); //TODO
+        registerObjectName("Head", (String[] lines) -> new Head(lines[0])); //TODO
         registerObjectName("Body", (String[] lines) -> new Body()); //TODO
         registerObjectName("Wall", (String[] lines) -> new Wall());
         registerObjectName("Oracle", (String[] lines) -> new Oracle());

@@ -26,9 +26,7 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -97,7 +95,7 @@ public class ClientApplication extends Application {
         actionEvent.consume();
     }
 
-    private void connectAndPlayGameThroughSocket(Socket socket, String name, int desiredPlayersNumber) {
+    private void connectAndPlayGameThroughSocket(Socket socket, String name, int desiredPlayersNumber, boolean isBot) {
         SocketGameConnection gameConnection;
         try {
             gameConnection = new SocketGameConnection(socket);
@@ -121,30 +119,32 @@ public class ClientApplication extends Application {
         gameResultStringMap.put(GameResult.WIN, "You suck anyway!");
         gameResultStringMap.put(GameResult.TIE, "Your opponents suck too!");
 
+        final Size[] fieldSize = new Size[1];
         Unit player = new Unit(name, gameConnection) {
             @Override
             protected void prepareForGame(GameMessage gameMessage) {
-                Size fieldSize = GameMessage.parseFieldSize(gameMessage);
+                fieldSize[0] = GameMessage.parseFieldSize(gameMessage);
                 Platform.runLater(() -> {
                     primaryStage.setScene(gameSceneHolder.getScene());
-                    arrangeGameScene(fieldSize);
+                    arrangeGameScene(fieldSize[0]);
                 });
             }
 
             @Override
             protected void onGameStarted(GameMessage gameMessage) {
-                Platform.runLater(() -> {
-                    gameSceneHolder.setOnControlsKeyPressed((keyEvent) -> {
-                        try {
-                            Direction desiredDirection = keyCodeDirectionMap.get(keyEvent.getCode());
-                            if (desiredDirection != null)
-                                this.changeDirection(desiredDirection);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                if (!isBot)
+                    Platform.runLater(() -> {
+                        gameSceneHolder.setOnControlsKeyPressed((keyEvent) -> {
+                            try {
+                                Direction desiredDirection = keyCodeDirectionMap.get(keyEvent.getCode());
+                                if (desiredDirection != null)
+                                    this.changeDirection(desiredDirection);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                        gameSceneHolder.setControlsActive(true);
                     });
-                    gameSceneHolder.setControlsActive(true);
-                });
             }
 
             @Override
@@ -165,6 +165,13 @@ public class ClientApplication extends Application {
                         })
                         .collect(Collectors.toList());
                 Platform.runLater(() -> gameSceneHolder.DrawField(nodes));
+                if (isBot) {
+                    try {
+                        changeDirection(botDecide(fieldObjects, fieldSize[0]));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
 
             @Override
@@ -187,44 +194,75 @@ public class ClientApplication extends Application {
         };
 
         player.run(desiredPlayersNumber);
-        /*try {
+    }
 
-            gameConnection.sendMessage(GameMessage.makeRequestMessage(name, desiredPlayersNumber));
+    private Direction botDecide(List<FieldObject> fieldObjects, Size fieldSize) {
+        Head head;
+        Optional<FieldObject> possibleHead = fieldObjects.stream().filter((o) -> o instanceof Head && ((Head) o).you).findFirst();
+        if (possibleHead.isPresent())
+            head = (Head) possibleHead.get();
+        else
+            return Direction.Down;
 
-            Platform.runLater(() -> primaryStage.setScene(gameSceneHolder.getScene()));
+        FieldObject[][] field = new FieldObject[fieldSize.width][fieldSize.height];
+        for (FieldObject fieldObject : fieldObjects)
+            field[fieldObject.getLocation().x][fieldObject.getLocation().y] = fieldObject;
 
-            AtomicReference<String> endMessage = new AtomicReference<>();
-            AtomicBoolean shouldRun = new AtomicBoolean(true);
-            while (shouldRun.get()) {
-                final GameMessage serverMessage;
-                try {
-                    serverMessage = gameConnection.receiveMessage();
-                } catch (IllegalGameMessageFormatException e) {
-                    endGameFromThread(endMessage, shouldRun, "Connection format error");
-                    break;
-                }
+        Optional<FieldObject> apple = fieldObjects.stream().filter((o) -> o instanceof Apple).findFirst();
+        if (!apple.isPresent())
+            return Direction.Down;//TODO better logic
 
+        Queue<Location> queue = new LinkedList<>();
+        Set<Location> used = new HashSet<>();
+        queue.add(head.getLocation());
+        used.add(head.getLocation());
+        Map<Location, Location> parent = new HashMap<>();
 
-                switch (serverMessage.messageType) {
-                    case GameIsReady:
-                        prepareGameFromThread(gameConnection, endMessage, shouldRun, serverMessage);
-                        break;
-                    case GameStarted:
-                        startGameFromThread(gameConnection, endMessage, shouldRun);
-                        break;
-                    case GameState:
-                        drawFieldFromMessageFromThread(serverMessage);
-                        break;
-                    case GameFinished:
-                        endGameFromThread(endMessage, shouldRun, GameMessage.parseFinishResult(serverMessage));
-                        break;
-                }
+        while (!queue.isEmpty()) {
+            Location cur = queue.poll();
+            if (cur == apple.get().getLocation())
+                break;
+            Collection<Location> neighbours = Arrays.stream(new Location[]{
+                    new Location(cur.x - 1, cur.y),
+                    new Location(cur.x, cur.y - 1),
+                    new Location(cur.x + 1, cur.y),
+                    new Location(cur.x, cur.y + 1)
+            }).filter((loc) ->
+                    loc.x >= 0 &&
+                    loc.y >= 0 &&
+                    loc.x < fieldSize.width &&
+                    loc.y < fieldSize.height &&
+                            (field[loc.x][loc.y] == null || loc.equals(apple.get().getLocation())) &&
+                    !used.contains(loc)).collect(Collectors.toList());
+
+            queue.addAll(neighbours);
+            used.addAll(neighbours);
+            for (Location loc : neighbours)
+                parent.put(loc, cur);
+        }
+
+        if (!used.contains(apple.get().getLocation()))
+            return Direction.Down;
+
+        Location next = apple.get().getLocation();
+        while (true){
+            Location t = parent.get(next);
+            if (t.equals(head.getLocation())) {
+                break;
             }
-            showGameEndSceneWithMessageAsync(endMessage.get());
-        } catch (Exception e) {
-            //todo log
-            showGameEndSceneWithMessageAsync("Unknown error");
-        }*/
+            next = t;
+        }
+
+        Location dir = new Location(next.x - head.getLocation().x, next.y - head.getLocation().y);
+        if (dir.x == 1)
+            return Direction.Right;
+        if (dir.x == -1)
+            return Direction.Left;
+        if (dir.y == 1)
+            return Direction.Down;
+        if (dir.y == -1)
+            return Direction.Up;
+        return Direction.Down; //TODO
     }
 
     /*private void prepareGameFromThread(SocketGameConnection gameConnection, AtomicReference<String> endMessage, AtomicBoolean shouldRun, GameMessage serverMessage) {

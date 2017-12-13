@@ -1,6 +1,6 @@
 package client;
 
-import client.Utils.ThrowingTripleConsumer;
+import client.Utils.ThrowingQuadConsumer;
 import javafx.application.Platform;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
@@ -8,6 +8,7 @@ import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
@@ -25,14 +26,19 @@ public class ConnectionSceneHolder implements SceneHolder {
     private final Service<Void> connectionEstablisher;
     private final TextField nameField = new TextField();
     private final TextField desiredPlayersNumberField = new TextField();
+    private final CheckBox isBotCheckBox = new CheckBox();
 
-    ConnectionSceneHolder(ThrowingTripleConsumer<Socket, String, Integer> socketUser) {
+    ConnectionSceneHolder(ThrowingQuadConsumer<Socket, String, Integer, Boolean> socketUser) {
         GridPane root = new GridPane();
         root.setAlignment(Pos.CENTER);
 
         root.add(new Text("Nickname and desired players number:"), 0, 0);
         root.add(nameField, 1, 0);
         root.add(desiredPlayersNumberField, 2, 0);
+        root.add(isBotCheckBox, 3, 0);
+        isBotCheckBox.setIndeterminate(false);
+        isBotCheckBox.setSelected(false);
+        isBotCheckBox.setAllowIndeterminate(false);
 
         root.add(new Text("Server address and port:"), 0, 1);
         root.add(serverAddressField, 1, 1);
@@ -53,7 +59,7 @@ public class ConnectionSceneHolder implements SceneHolder {
                         try {
                             doConnectionWork(socketUser);
                         } catch (Exception e) {
-                            e.printStackTrace();//TODO log
+                            e.printStackTrace();
                         }
                         return null;
                     }
@@ -65,7 +71,7 @@ public class ConnectionSceneHolder implements SceneHolder {
         root.disableProperty().bind(connectionEstablisher.runningProperty());
     }
 
-    private void doConnectionWork(ThrowingTripleConsumer<Socket, String, Integer> socketUser) throws Exception {
+    private void doConnectionWork(ThrowingQuadConsumer<Socket, String, Integer, Boolean> socketUser) throws Exception {
         setStateMessageOnMainThread("Connecting...");
 
         String serverAddress = serverAddressField.textProperty().getValueSafe();
@@ -75,18 +81,19 @@ public class ConnectionSceneHolder implements SceneHolder {
         try {
             port = Integer.parseUnsignedInt(portField.textProperty().getValueSafe());
         } catch (NumberFormatException e) {
-            setErrorMessageOnMainThread("Port should be a non negative integer");//todo log
+            e.printStackTrace();
+            setErrorMessageOnMainThread("Port should be a non negative integer");
             return;
         }
 
         try {
             desiredPlayersNumber = Integer.parseInt(desiredPlayersNumberField.textProperty().getValueSafe());
         } catch (NumberFormatException e) {
-            setErrorMessageOnMainThread("Desired players number should be integer");//todo log
+            setErrorMessageOnMainThread("Desired players number should be integer");
             return;
         }
         if (desiredPlayersNumber < 1) {
-            setErrorMessageOnMainThread("Desired players number should be one or greater");//todo log
+            setErrorMessageOnMainThread("Desired players number should be one or greater");
             return;
         }
 
@@ -94,16 +101,18 @@ public class ConnectionSceneHolder implements SceneHolder {
         try {
             socket = new Socket(serverAddress, port);
         } catch (UnknownHostException e) {
-            setErrorMessageOnMainThread("Unknown host");//todo log
+            e.printStackTrace();
+            setErrorMessageOnMainThread("Unknown host");
             return;
         } catch (IOException e) {
-            setErrorMessageOnMainThread("Unable to connect");//todo log
+            e.printStackTrace();
+            setErrorMessageOnMainThread("Unable to connect");
             return;
         }
 
-        setStateMessageOnMainThread("Connected!");
+        setStateMessageOnMainThread("Waiting for game");
 
-        socketUser.accept(socket, name, desiredPlayersNumber);
+        socketUser.accept(socket, name, desiredPlayersNumber, isBotCheckBox.isSelected());
     }
 
     private void setErrorMessageOnMainThread(String message) {

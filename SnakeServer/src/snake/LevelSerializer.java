@@ -9,6 +9,10 @@ public class LevelSerializer implements Serializer<Level>{
 
         sb.append("Head").append("\n");
         serializeVector(sb, level.snake.getHeadLocation());
+        if (playerId == playerId)
+            sb.append("YOU\n");//TODO change to actual id
+        else
+            sb.append(playerId).append("\n");//TODO change to actual id
         sb.append(OBJECT_SEPARATOR);
 
         Vector[] body = level.snake.getTrace();
