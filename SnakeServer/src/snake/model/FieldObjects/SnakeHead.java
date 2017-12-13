@@ -8,20 +8,22 @@ import snake.model.util.Vector;
 
 public class SnakeHead extends SnakePart implements ISnakeHead {
     private Vector direction;
+    private int ID;
 
     private int lengthToGrow = 0;
 
     private boolean alive = true;
     private boolean justAte;
 
-    public SnakeHead(Location location, SnakeBody prev, Vector direction, IField field) {
+    public SnakeHead(int id, Location location, SnakeBody prev, Vector direction, IField field) {
         super(location, prev, field);
-
+        this.ID = id;
         setDirection(direction);
     }
 
-    public SnakeHead(Location location, Vector direction, IField field, Iterable<Location> bodyLocation) {
+    public SnakeHead(int id, Location location, Vector direction, IField field, Iterable<Location> bodyLocation) {
         super(location, null, field);
+        this.ID = id;
         setDirection(direction);
 
         SnakePart tail = this;
@@ -46,6 +48,9 @@ public class SnakeHead extends SnakePart implements ISnakeHead {
     public boolean willGrow() {
         return lengthToGrow > 0;
     }
+
+    @Override
+    public int getID() { return ID; }
 
     @Override
     public void eat(int growValue) throws IllegalStateException {

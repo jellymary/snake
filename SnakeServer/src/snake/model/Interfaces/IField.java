@@ -13,7 +13,9 @@ public interface IField extends Iterable<IFieldObject> {
 
     void addObject(IFieldObject object);
 
-    ISnakeHead getSnakeHead();
+    ISnakeHead getSnakeHead(int id);
+
+    int getSnakeCount();
 
     void eraseAt(Location location);
 }

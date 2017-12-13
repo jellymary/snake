@@ -18,7 +18,7 @@ public class GameThread extends Thread {
 
     @Override
     public void run() {
-        this.game = new Game(FieldGenerators.genBoardedField(10, 10));
+        this.game = new Game(FieldGenerators.genBoardedField(10, 10, players.length));
         sendGameReadinessMessage();
         readClientsReadinessMessage();
         createPlayerActionThreads();
@@ -41,7 +41,7 @@ public class GameThread extends Thread {
                     try {
                         String playerAction = player.read(Message.PLAYER_ACTION);
                         Vector direction = (Vector)Vector.class.getField(playerAction).get(Vector.ZERO);
-                        game.getField().getSnakeHead().setDirection(direction);
+                        game.getField().getSnakeHead(player.ID).setDirection(direction);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -82,7 +82,7 @@ public class GameThread extends Thread {
 
     private void sendGameEndingMessage() {
         for (Player player : players) {
-            player.isWinner = game.getField().getSnakeHead().isAlive();
+            player.isWinner = game.getField().getSnakeHead(player.ID).isAlive();
             player.send(Message.GAME_FINISHED);
             player.socketClosing();
         }

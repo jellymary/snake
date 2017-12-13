@@ -27,7 +27,13 @@ public class Game implements IGame {
     }
 
     public Boolean isPlaying() {
-        return this.field.getSnakeHead().isAlive();
+        Boolean isPlaying = false;
+        for (int i = 0; i < field.getSnakeCount(); i++) {
+            isPlaying =  !isPlaying && this.field.getSnakeHead(i).isAlive();
+            if (isPlaying && this.field.getSnakeHead(i).isAlive())
+                return true;
+        }
+        return false;
     }
 
     @Override

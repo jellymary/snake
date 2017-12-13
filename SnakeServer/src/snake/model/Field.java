@@ -15,8 +15,10 @@ public class Field implements IField, Iterable<IFieldObject> {
     private ArrayList<IFieldObject> field;
     private int height;
     private int width;
+    private int snakeCount;
 
-    public Field(int height, int width) {
+    public Field(int height, int width, int snakeCount) {
+        this.snakeCount = snakeCount;
         if (height < 1 || width < 1)
             throw new IllegalArgumentException("Field can`t to be built, incorrect parameters");
         this.height = height;
@@ -55,13 +57,16 @@ public class Field implements IField, Iterable<IFieldObject> {
     }
 
     @Override
-    public ISnakeHead getSnakeHead() {
+    public ISnakeHead getSnakeHead(int id) {
         SnakeHead snakeHead = null;
         for (IFieldObject fieldObject : field)
-            if (fieldObject instanceof SnakeHead)
+            if (fieldObject instanceof SnakeHead && ((SnakeHead) fieldObject).getID() == id)
                 snakeHead = (SnakeHead) fieldObject;
         return snakeHead;
     }
+
+    @Override
+    public int getSnakeCount() { return snakeCount; }
 
     @Override
     public void eraseAt(Location location) {

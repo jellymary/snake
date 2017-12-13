@@ -6,15 +6,17 @@ import snake.model.Interfaces.IField;
 import snake.model.util.Location;
 import snake.model.util.Vector;
 
+import java.util.Random;
+
 public final class FieldGenerators {
     private FieldGenerators() {
     }
 
-    public static IField genBoardedField(int height, int width) {
+    public static IField genBoardedField(int height, int width, int playerCount) {
         if (height < 3 || width < 3)
             throw new IllegalArgumentException();
 
-        IField field = new Field(height, width);
+        IField field = new Field(height, width, playerCount);
         for (int x = 0; x < width; x++) {
             field.addObject(new Wall(new Location(x, 0)));
             field.addObject(new Wall(new Location(x, height - 1)));
@@ -25,9 +27,18 @@ public final class FieldGenerators {
             field.addObject(new Wall(new Location(width - 1, y)));
         }
 
-        SnakeHead snake = new SnakeHead(new Location(4, 4), null, Vector.RIGHT, field);
-        field.addObject(snake);
-
+        Random random = new Random();
+        int index = 0;
+        while (index < playerCount) {
+            int y = random.nextInt(field.getHeight());
+            int x = random.nextInt(field.getWidth());
+            Location location = new Location(x, y);
+            if (field.getObjectAt(location) == null) {
+                SnakeHead snake = new SnakeHead(index, location,null, Vector.RIGHT, field);
+                field.addObject(snake);
+                index++;
+            }
+        }
         return field;
     }
 }

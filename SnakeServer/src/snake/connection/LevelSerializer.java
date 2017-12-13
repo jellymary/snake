@@ -11,10 +11,11 @@ public class LevelSerializer implements Serializer<Game>{
     public String serializeForPlayer(Game game, int playerId) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("Head").append("\n");
-        serializeLocation(sb, game.getField().getSnakeHead().getLocation());
-        sb.append(OBJECT_SEPARATOR);
-
+        for (int i = 0; i < game.getField().getSnakeCount(); i++) {
+            sb.append("Head").append("\n");
+            serializeLocation(sb, game.getField().getSnakeHead(i).getLocation());
+            sb.append(OBJECT_SEPARATOR);
+        }
 
 //        Vector[] body = game.snake.getTrace();
 //        for (int i = 1; i < body.length; i++) {

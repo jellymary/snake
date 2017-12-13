@@ -16,4 +16,6 @@ public interface ISnakeHead extends IFieldObject {
     boolean isAlive();
 
     boolean willGrow();
+
+    int getID();
 }
