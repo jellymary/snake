@@ -1,10 +1,13 @@
 package snake.model;
 
+import snake.model.FieldObjects.Apple;
 import snake.model.Interfaces.IField;
 import snake.model.Interfaces.IFieldObject;
 import snake.model.Interfaces.IGame;
+import snake.model.util.Location;
 
 import java.util.HashSet;
+import java.util.Random;
 
 public class Game implements IGame {
     private IField field;
@@ -24,16 +27,39 @@ public class Game implements IGame {
                 object.act();
             }
         }
+        checkAppleAvailability();
+    }
+
+    private void checkAppleAvailability() {
+        Random random = new Random();
+        Boolean appleExists = appleExists();
+        while (!appleExists) {
+            int x = random.nextInt(field.getWidth());
+            int y = random.nextInt(field.getHeight());
+            Location location = new Location(x, y);
+            if (field.getObjectAt(location) == null) {
+                field.addObject(new Apple(location, field, 1));
+                appleExists = true;
+            }
+        }
+    }
+
+    private Boolean appleExists() {
+        for (IFieldObject object : field) {
+            if (object instanceof Apple)
+                return true;
+        }
+        return false;
     }
 
     public Boolean isPlaying() {
-        Boolean isPlaying = false;
         if (field.getSnakeCount() == 1)
             return field.getSnakeHead(0).isAlive();
+        Boolean someoneAlive = false;
         for (int i = 0; i < field.getSnakeCount(); i++) {
-            if (isPlaying && this.field.getSnakeHead(i).isAlive())
+            if (someoneAlive && this.field.getSnakeHead(i).isAlive())
                 return true;
-            isPlaying =  !isPlaying && this.field.getSnakeHead(i).isAlive();
+            someoneAlive = someoneAlive || this.field.getSnakeHead(i).isAlive();
         }
         return false;
     }

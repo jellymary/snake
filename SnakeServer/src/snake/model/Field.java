@@ -17,7 +17,7 @@ public class Field implements IField, Iterable<IFieldObject> {
     private int width;
     private int snakeCount;
 
-    public Field(int height, int width, int snakeCount) {
+    public Field(int width, int height, int snakeCount) {
         this.snakeCount = snakeCount;
         if (height < 1 || width < 1)
             throw new IllegalArgumentException("Field can`t to be built, incorrect parameters");

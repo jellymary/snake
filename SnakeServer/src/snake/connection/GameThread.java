@@ -1,7 +1,7 @@
 package snake.connection;
 
-import snake.model.Game;
 import snake.model.FieldGenerators;
+import snake.model.Game;
 import snake.model.util.Vector;
 
 public class GameThread extends Thread {
@@ -42,9 +42,7 @@ public class GameThread extends Thread {
                         String playerAction = player.read(Message.PLAYER_ACTION);
                         Vector direction = (Vector)Vector.class.getField(playerAction).get(Vector.ZERO);
                         game.getField().getSnakeHead(player.ID).setDirection(direction);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    } catch (Exception ignore) {}
             });
             player.actionThread.setDaemon(true);
         }
